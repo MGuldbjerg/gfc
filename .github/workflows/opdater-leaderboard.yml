@@ -1,0 +1,17 @@
+name: Opdater leaderboard
+
+on:
+  schedule:
+    # Kører tirsdag kl. 07:00 dansk tid (06:00 UTC, +1 om vinteren)
+    - cron: '0 6 * * 2'
+  workflow_dispatch: # Tillader manuel kørsel fra GitHub-siden
+
+jobs:
+  revalidate:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Genindlæs leaderboard-cache på Vercel
+        run: |
+          curl -s -X POST \
+            -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}" \
+            https://gfc-seven.vercel.app/api/revalidate
