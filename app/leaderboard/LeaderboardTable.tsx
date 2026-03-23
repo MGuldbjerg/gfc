@@ -1,5 +1,6 @@
 'use client'
 
+import Link from 'next/link'
 import type { LeaderboardEntry } from '@/types/sleeper'
 
 const RANK_STYLE: Record<number, string> = {
@@ -52,7 +53,11 @@ export default function LeaderboardTable({
               <td className={`text-center px-3 py-2 ${RANK_STYLE[entry.rank] ?? 'text-gray-500'}`}>
                 {RANK_MEDAL[entry.rank] ?? entry.rank}
               </td>
-              <td className="px-3 py-2 font-medium">{entry.displayName}</td>
+              <td className="px-3 py-2 font-medium">
+                <Link href={`/profil/${entry.username}`} className="hover:text-indigo-400 transition-colors">
+                  {entry.displayName}
+                </Link>
+              </td>
               <td className="px-3 py-2 text-gray-500 text-xs">{entry.league}</td>
               {type === 'managed' && (
                 <td className="px-3 py-2 text-center text-gray-400">{entry.wins ?? 0}</td>
