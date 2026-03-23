@@ -1,3 +1,4 @@
+import Link from 'next/link'
 import { createClient } from '@/lib/supabase-server'
 import { CURRENT_SEASON } from '@/lib/leagues'
 import AdminTilmeldinger from './AdminTilmeldinger'
@@ -53,6 +54,14 @@ export default async function AdminPage() {
               <p className="text-gray-500 text-xs mt-1">{label}</p>
             </div>
           ))}
+        </div>
+
+        {/* Handlinger */}
+        <div className="flex gap-3 mb-6">
+          <Link href="/admin/fordel"
+            className="bg-indigo-600 hover:bg-indigo-500 text-white px-5 py-2 rounded-lg font-medium transition-colors text-sm">
+            🔀 Fordel deltagere i ligaer
+          </Link>
         </div>
 
         <AdminTilmeldinger tilmeldinger={tilmeldinger ?? []} />
