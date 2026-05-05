@@ -1,121 +1,94 @@
-// Beregning af leaderboard-data fra Sleeper API
+import type { LeaderboardEntry, LeaderboardResult } from '@/types/sleeper'
+import { fetchRosters, fetchUsers } from './sleeper'
+import { ALL_LEAGUES } from './leagues'
 
-import { getAllMatchups, buildUserMap, getRosters } from './sleeper'
-import { getLeaguesByType, REGULAR_SEASON_WEEKS } from './leagues'
-import type { GFCLeague, LeaderboardEntry, WeeklyHighscore } from '@/types/sleeper'
+export type LeaderboardType = 'bestball' | 'managed'
 
-export interface LeaderboardResult {
-  entries: LeaderboardEntry[]
-  weeklyHighscores: WeeklyHighscore[]
-  seasonHighscore: WeeklyHighscore | null
-}
-
-async function processLeague(league: GFCLeague): Promise<{
-  entries: LeaderboardEntry[]
-  weeklyScores: WeeklyHighscore[]
-} | null> {
-  const [userMap, rosters, matchupsByWeek] = await Promise.all([
-    buildUserMap(league.sleeperId),
-    getRosters(league.sleeperId),
-    getAllMatchups(league.sleeperId, REGULAR_SEASON_WEEKS),
-  ])
-
-  if (!rosters) return null
-
-  // Byg entry per roster
-  const entryMap: Record<number, LeaderboardEntry> = {}
-
-  for (const roster of rosters) {
-    const user = userMap[roster.roster_id]
-    if (!user) continue
-
-    entryMap[roster.roster_id] = {
-      rank: 0,
-      username: user.username,
-      displayName: user.displayName,
-      league: league.name,
-      leagueType: league.type,
-      totalPoints: (roster.settings.fpts ?? 0) + (roster.settings.fpts_decimal ?? 0) / 100,
-      wins: roster.settings.wins ?? 0,
-      losses: roster.settings.losses ?? 0,
-      weeklyScores: {},
-      highestWeeklyScore: 0,
-      highestWeeklyScoreWeek: 0,
-    }
-  }
-
-  // Fyld ugescorer ind
-  const weeklyScores: WeeklyHighscore[] = []
-
-  for (const [weekStr, matchups] of Object.entries(matchupsByWeek)) {
-    const week = Number(weekStr)
-    for (const matchup of matchups) {
-      const entry = entryMap[matchup.roster_id]
-      if (!entry || matchup.points === 0) continue
-
-      entry.weeklyScores[week] = matchup.points
-
-      if (matchup.points > entry.highestWeeklyScore) {
-        entry.highestWeeklyScore = matchup.points
-        entry.highestWeeklyScoreWeek = week
-      }
-
-      weeklyScores.push({
-        username: entry.username,
-        displayName: entry.displayName,
-        league: league.name,
-        leagueType: league.type,
-        week,
-        points: matchup.points,
-      })
-    }
-  }
-
-  return {
-    entries: Object.values(entryMap),
-    weeklyScores,
-  }
-}
-
+/**
+ * Compute leaderboard for a given type and season by aggregating Sleeper API data
+ */
 export async function computeLeaderboard(
-  type: GFCLeague['type'],
+  type: LeaderboardType,
   season: string
 ): Promise<LeaderboardResult> {
-  const leagues = getLeaguesByType(type, season)
+  try {
+    // Find all leagues for this season and type
+    const leaguesToFetch = ALL_LEAGUES.filter(
+      (l) => l.season === season && l.leagueType === type && l.sleeperId
+    )
 
-  const results = await Promise.all(leagues.map(processLeague))
-
-  const allEntries: LeaderboardEntry[] = []
-  const allWeeklyScores: WeeklyHighscore[] = []
-
-  for (const result of results) {
-    if (!result) continue
-    allEntries.push(...result.entries)
-    allWeeklyScores.push(...result.weeklyScores)
-  }
-
-  // Sorter: managed = wins først, derefter point; bestball = point
-  allEntries.sort((a, b) => {
-    if (type === 'managed') {
-      if ((b.wins ?? 0) !== (a.wins ?? 0)) return (b.wins ?? 0) - (a.wins ?? 0)
+    if (leaguesToFetch.length === 0) {
+      console.warn(`No leagues found for ${type} ${season}`)
+      return { entries: [] }
     }
-    return b.totalPoints - a.totalPoints
-  })
 
-  // Sæt rang
-  allEntries.forEach((e, i) => { e.rank = i + 1 })
+    // Fetch data from all leagues in parallel
+    const allRosters: Array<{ leagueId: string; rosters: any[]; users: Record<string, any> }> = await Promise.all(
+      leaguesToFetch.map(async (league) => {
+        try {
+          const [rosters, users] = await Promise.all([
+            fetchRosters(league.sleeperId),
+            fetchUsers(league.sleeperId),
+          ])
+          return { leagueId: league.sleeperId, rosters, users }
+        } catch (error) {
+          console.error(`Failed to fetch data for league ${league.sleeperId}:`, error)
+          return { leagueId: league.sleeperId, rosters: [], users: {} }
+        }
+      })
+    )
 
-  // Top 5 ugescorer
-  const topWeekly = [...allWeeklyScores]
-    .sort((a, b) => b.points - a.points)
-    .slice(0, 5)
+    // Aggregate data: collect entries by user and sum their points/wins
+    const userMap = new Map<string, LeaderboardEntry>()
 
-  // Sæsonens højeste score (præmie)
-  const seasonHighscore = topWeekly[0] ?? null
+    for (const { rosters, users } of allRosters) {
+      for (const roster of rosters) {
+        const owner = users[roster.owner_id]
+        if (!owner) continue
 
-  return {
-    entries: allEntries.slice(0, 20),
-    weeklyHighscores: topWeekly,
-    seasonHighscore,
+        const key = owner.username
+        const totalPoints = roster.settings?.fpts_for_decimal || roster.settings?.fpts_for || 0
+        const wins = roster.settings?.wins || 0
+
+        if (!userMap.has(key)) {
+          userMap.set(key, {
+            rank: 0, // Will be assigned after sorting
+            username: owner.username,
+            displayName: owner.display_name || owner.username,
+            leagueType: type,
+            totalPoints,
+            wins: type === 'managed' ? wins : undefined,
+          })
+        } else {
+          const entry = userMap.get(key)!
+          entry.totalPoints += totalPoints
+          if (type === 'managed' && entry.wins !== undefined) {
+            entry.wins += wins
+          }
+        }
+      }
+    }
+
+    // Convert to array and sort
+    const entries = Array.from(userMap.values())
+
+    if (type === 'managed') {
+      entries.sort((a, b) => {
+        if ((b.wins || 0) !== (a.wins || 0)) return (b.wins || 0) - (a.wins || 0)
+        return b.totalPoints - a.totalPoints
+      })
+    } else {
+      entries.sort((a, b) => b.totalPoints - a.totalPoints)
+    }
+
+    // Assign ranks
+    entries.forEach((entry, idx) => {
+      entry.rank = idx + 1
+    })
+
+    return { entries }
+  } catch (error) {
+    console.error(`Error computing leaderboard for ${type} ${season}:`, error)
+    return { entries: [] }
   }
 }

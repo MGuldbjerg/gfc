@@ -1,52 +1,63 @@
-// Konfiguration af alle GFC-ligaer på tværs af sæsoner
+export type LeagueType = 'bestball' | 'managed'
 
-import type { GFCLeague } from '@/types/sleeper'
-
-// 2026-sæsonen — TODO: Mikkel indsætter liga-ID'er når de er oprettet i Sleeper
-const LEAGUES_2026: GFCLeague[] = [
-  // Indsæt 2026 Sleeper liga-ID'er her når de er oprettet
-  // { id: 'M1', name: 'M1', sleeperId: 'XXXX', type: 'managed', season: '2026' },
-]
-
-// 2025-sæsonen (fra eksisterende app.R — verificeret via API, status: complete)
-const LEAGUES_2025: GFCLeague[] = [
-  // Managed
-  { id: 'M1_2025', name: 'M1', sleeperId: '1256387533722365952', type: 'managed', season: '2025' },
-  { id: 'M2_2025', name: 'M2', sleeperId: '1256388144274604032', type: 'managed', season: '2025' },
-  { id: 'M3_2025', name: 'M3', sleeperId: '1256388355424268288', type: 'managed', season: '2025' },
-  { id: 'M4_2025', name: 'M4', sleeperId: '1256388555077324800', type: 'managed', season: '2025' },
-  { id: 'M5_2025', name: 'M5', sleeperId: '1256388811772936192', type: 'managed', season: '2025' },
-  // Bestball
-  { id: 'BB1_2025', name: 'BB1', sleeperId: '1256384368658632704', type: 'bestball', season: '2025' },
-  { id: 'BB2_2025', name: 'BB2', sleeperId: '1256385813147566080', type: 'bestball', season: '2025' },
-  { id: 'BB3_2025', name: 'BB3', sleeperId: '1256386180920901632', type: 'bestball', season: '2025' },
-  { id: 'BB4_2025', name: 'BB4', sleeperId: '1256386439235518464', type: 'bestball', season: '2025' },
-  { id: 'BB5_2025', name: 'BB5', sleeperId: '1256386762435997696', type: 'bestball', season: '2025' },
-  { id: 'BB6_2025', name: 'BB6', sleeperId: '1256387182386499584', type: 'bestball', season: '2025' },
-]
-
-// 2024-sæsonen — TODO: Mikkel indsætter liga-ID'er
-const LEAGUES_2024: GFCLeague[] = [
-  // Indsæt Sleeper liga-ID'er her når de er fundet
-  // { id: 'M1_2024', name: 'M1', sleeperId: 'XXXX', type: 'managed', season: '2024' },
-]
-
-export const ALL_LEAGUES: GFCLeague[] = [
-  ...LEAGUES_2026,
-  ...LEAGUES_2025,
-  ...LEAGUES_2024,
-]
-
-export function getLeaguesBySeason(season: string): GFCLeague[] {
-  return ALL_LEAGUES.filter(l => l.season === season)
+export interface League {
+  season: string
+  leagueType: LeagueType
+  name: string
+  sleeperId: string
 }
 
-export function getLeaguesByType(type: GFCLeague['type'], season?: string): GFCLeague[] {
-  return ALL_LEAGUES.filter(
-    l => l.type === type && (season ? l.season === season : true)
-  )
+// 2024 Sleeper Liga-ID'er
+const LEAGUES_2024 = {
+  M1: '1121180960650878976',
+  M2: '1121183078015148032',
+  M3: '1121184019300851712',
+  M4: '1121184998146592768',
+  M5: '1121216960743854080',
+  BB1: '1120810376901357568',
+  BB2: '1120810934857052160',
+  BB3: '1120811327129350144',
+  BB4: '1120811543077212160',
+  BB5: '1120811771759091712',
 }
 
-export const CURRENT_SEASON = '2025' // Opdateres til '2026' når ny sæson oprettes
-export const PLAYOFF_START_WEEK = 15
-export const REGULAR_SEASON_WEEKS = 14
+// 2025 Sleeper Liga-ID'er
+const LEAGUES_2025 = {
+  M1: '1256387533722365952',
+  M2: '1256388144274604032',
+  M3: '1256388355424268288',
+  M4: '1256388555077324800',
+  M5: '1256388811772936192',
+  BB1: '1256384368658632704',
+  BB2: '1256385813147566080',
+  BB3: '1256386180920901632',
+  BB4: '1256386439235518464',
+  BB5: '1256386762435997696',
+  BB6: '1256387182386499584',
+}
+
+export const ALL_LEAGUES: League[] = [
+  // 2024
+  { season: '2024', leagueType: 'managed', name: 'Managed 1', sleeperId: LEAGUES_2024.M1 },
+  { season: '2024', leagueType: 'managed', name: 'Managed 2', sleeperId: LEAGUES_2024.M2 },
+  { season: '2024', leagueType: 'managed', name: 'Managed 3', sleeperId: LEAGUES_2024.M3 },
+  { season: '2024', leagueType: 'managed', name: 'Managed 4', sleeperId: LEAGUES_2024.M4 },
+  { season: '2024', leagueType: 'managed', name: 'Managed 5', sleeperId: LEAGUES_2024.M5 },
+  { season: '2024', leagueType: 'bestball', name: 'Bestball 1', sleeperId: LEAGUES_2024.BB1 },
+  { season: '2024', leagueType: 'bestball', name: 'Bestball 2', sleeperId: LEAGUES_2024.BB2 },
+  { season: '2024', leagueType: 'bestball', name: 'Bestball 3', sleeperId: LEAGUES_2024.BB3 },
+  { season: '2024', leagueType: 'bestball', name: 'Bestball 4', sleeperId: LEAGUES_2024.BB4 },
+  { season: '2024', leagueType: 'bestball', name: 'Bestball 5', sleeperId: LEAGUES_2024.BB5 },
+  // 2025
+  { season: '2025', leagueType: 'managed', name: 'Managed 1', sleeperId: LEAGUES_2025.M1 },
+  { season: '2025', leagueType: 'managed', name: 'Managed 2', sleeperId: LEAGUES_2025.M2 },
+  { season: '2025', leagueType: 'managed', name: 'Managed 3', sleeperId: LEAGUES_2025.M3 },
+  { season: '2025', leagueType: 'managed', name: 'Managed 4', sleeperId: LEAGUES_2025.M4 },
+  { season: '2025', leagueType: 'managed', name: 'Managed 5', sleeperId: LEAGUES_2025.M5 },
+  { season: '2025', leagueType: 'bestball', name: 'Bestball 1', sleeperId: LEAGUES_2025.BB1 },
+  { season: '2025', leagueType: 'bestball', name: 'Bestball 2', sleeperId: LEAGUES_2025.BB2 },
+  { season: '2025', leagueType: 'bestball', name: 'Bestball 3', sleeperId: LEAGUES_2025.BB3 },
+  { season: '2025', leagueType: 'bestball', name: 'Bestball 4', sleeperId: LEAGUES_2025.BB4 },
+  { season: '2025', leagueType: 'bestball', name: 'Bestball 5', sleeperId: LEAGUES_2025.BB5 },
+  { season: '2025', leagueType: 'bestball', name: 'Bestball 6', sleeperId: LEAGUES_2025.BB6 },
+]

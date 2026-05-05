@@ -1,107 +1,76 @@
-// Sleeper API-klient
+/**
+ * Sleeper API client for fetching league and user data
+ */
 
-import type {
-  SleeperLeague,
-  SleeperUser,
-  SleeperRoster,
-  SleeperMatchup,
-  SleeperDraft,
-  SleeperDraftPick,
-} from '@/types/sleeper'
+const SLEEPER_BASE_URL = 'https://api.sleeper.app/v1'
 
-const BASE = 'https://api.sleeper.app/v1'
-
-async function sleep(ms: number) {
-  return new Promise(resolve => setTimeout(resolve, ms))
+export interface SleeperUser {
+  user_id: string
+  username: string
+  display_name: string
 }
 
-async function fetchSleeper<T>(endpoint: string): Promise<T | null> {
-  try {
-    const res = await fetch(`${BASE}${endpoint}`, {
-      next: { revalidate: 3600 }, // cache 1 time
+export interface SleeperRoster {
+  roster_id: number
+  owner_id: string
+  players: string[] | null
+  settings: {
+    wins?: number
+    losses?: number
+    ties?: number
+    fpts?: number
+    fpts_decimal?: number
+    fpts_for?: number
+    fpts_for_decimal?: number
+    fpts_against?: number
+    fpts_against_decimal?: number
+  }
+}
+
+export async function fetchLeague(leagueId: string) {
+  const res = await fetch(`${SLEEPER_BASE_URL}/league/${leagueId}`)
+  if (!res.ok) throw new Error(`Sleeper API error: ${res.status}`)
+  return res.json()
+}
+
+export async function fetchRosters(leagueId: string): Promise<SleeperRoster[]> {
+  const res = await fetch(`${SLEEPER_BASE_URL}/league/${leagueId}/rosters`)
+  if (!res.ok) throw new Error(`Sleeper API error: ${res.status}`)
+  return res.json()
+}
+
+export async function fetchUsers(leagueId: string): Promise<Record<string, SleeperUser>> {
+  const res = await fetch(`${SLEEPER_BASE_URL}/league/${leagueId}/users`)
+  if (!res.ok) throw new Error(`Sleeper API error: ${res.status}`)
+  const users = await res.json()
+
+  // Convert array to object keyed by user_id
+  const userMap: Record<string, SleeperUser> = {}
+  if (Array.isArray(users)) {
+    users.forEach((u: SleeperUser) => {
+      userMap[u.user_id] = u
     })
-    if (!res.ok) return null
-    return res.json() as Promise<T>
-  } catch {
-    return null
-  }
-}
-
-export async function getLeague(leagueId: string): Promise<SleeperLeague | null> {
-  return fetchSleeper<SleeperLeague>(`/league/${leagueId}`)
-}
-
-export async function getRosters(leagueId: string): Promise<SleeperRoster[] | null> {
-  return fetchSleeper<SleeperRoster[]>(`/league/${leagueId}/rosters`)
-}
-
-export async function getUsers(leagueId: string): Promise<SleeperUser[] | null> {
-  return fetchSleeper<SleeperUser[]>(`/league/${leagueId}/users`)
-}
-
-export async function getMatchups(
-  leagueId: string,
-  week: number
-): Promise<SleeperMatchup[] | null> {
-  return fetchSleeper<SleeperMatchup[]>(`/league/${leagueId}/matchups/${week}`)
-}
-
-export async function getDrafts(leagueId: string): Promise<SleeperDraft[] | null> {
-  return fetchSleeper<SleeperDraft[]>(`/league/${leagueId}/drafts`)
-}
-
-export async function getDraftPicks(draftId: string): Promise<SleeperDraftPick[] | null> {
-  return fetchSleeper<SleeperDraftPick[]>(`/draft/${draftId}/picks`)
-}
-
-export async function getUserByUsername(username: string): Promise<SleeperUser | null> {
-  return fetchSleeper<SleeperUser>(`/user/${username}`)
-}
-
-// Hent alle matchup-data for uge 1-17 med rate-limiting
-export async function getAllMatchups(
-  leagueId: string,
-  maxWeek = 17
-): Promise<Record<number, SleeperMatchup[]>> {
-  const result: Record<number, SleeperMatchup[]> = {}
-
-  for (let week = 1; week <= maxWeek; week++) {
-    const matchups = await getMatchups(leagueId, week)
-    if (matchups && matchups.length > 0 && matchups.some(m => m.points > 0)) {
-      result[week] = matchups
-    }
-    await sleep(100) // rate-limiting
+  } else {
+    return users
   }
 
-  return result
+  return userMap
 }
 
-// Byg roster_id → username-mapping for en liga
-export async function buildUserMap(
-  leagueId: string
-): Promise<Record<number, { username: string; displayName: string }>> {
-  const [rosters, users] = await Promise.all([
-    getRosters(leagueId),
-    getUsers(leagueId),
-  ])
+export async function fetchMatchups(leagueId: string, week: number) {
+  const res = await fetch(`${SLEEPER_BASE_URL}/league/${leagueId}/matchups/${week}`)
+  if (!res.ok) throw new Error(`Sleeper API error: ${res.status}`)
+  return res.json()
+}
 
-  if (!rosters || !users) return {}
+export async function fetchDraft(leagueId: string) {
+  const res = await fetch(`${SLEEPER_BASE_URL}/league/${leagueId}/draft`)
+  if (!res.ok) throw new Error(`Sleeper API error: ${res.status}`)
+  return res.json()
+}
 
-  const userById: Record<string, SleeperUser> = {}
-  for (const user of users) {
-    userById[user.user_id] = user
-  }
-
-  const map: Record<number, { username: string; displayName: string }> = {}
-  for (const roster of rosters) {
-    const user = userById[roster.owner_id]
-    if (user) {
-      map[roster.roster_id] = {
-        username: user.username,
-        displayName: user.display_name,
-      }
-    }
-  }
-
-  return map
+export async function fetchDraftPicks(draftId: string) {
+  const res = await fetch(`${SLEEPER_BASE_URL}/draft/${draftId}/picks`)
+  if (!res.ok) throw new Error(`Sleeper API error: ${res.status}`)
+  return res.json()
 }
