@@ -2,6 +2,22 @@ export const CURRENT_SEASON = '2026'
 
 export type LeagueType = 'bestball' | 'managed' | 'chopped'
 
+// Champion determination format per (season, leagueType).
+// Default for everything not listed: 'pooled-playoff' (top 3 per Sleeper-league
+// go to a pooled GFC playoff weeks 15–17 — bottom 5 out each week, last 5 play
+// for the title on the highest week-17 score).
+// 'aggregate-points' = winner is simply the highest aggregate scorer across
+// all 17 weeks (used for 2025 bestball).
+export type SeasonFormat = 'pooled-playoff' | 'aggregate-points'
+
+const FORMAT_OVERRIDES: Record<string, SeasonFormat> = {
+  '2025-bestball': 'aggregate-points',
+}
+
+export function formatFor(season: string, leagueType: LeagueType): SeasonFormat {
+  return FORMAT_OVERRIDES[`${season}-${leagueType}`] ?? 'pooled-playoff'
+}
+
 export interface League {
   season: string
   leagueType: LeagueType

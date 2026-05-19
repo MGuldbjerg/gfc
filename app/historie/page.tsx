@@ -4,9 +4,12 @@ import {
   hentSæsonOversigt,
   hentAllTimeOversigt,
   hentBedsteSæsonRekorder,
+  hentSæsonVinder,
+  hentSingleWeekRekord,
   type AllTimeEntry,
   type SæsonRekord,
-  type SæsonOversigt,
+  type SæsonVinder,
+  type UgeRekord,
 } from '@/lib/historie'
 import type { LeaderboardEntry } from '@/types/sleeper'
 
@@ -107,7 +110,15 @@ async function SæsonView({
   sæsoner: string[]
   valgtSæson: string
 }) {
-  const oversigt = await hentSæsonOversigt(valgtSæson)
+  const [oversigt, bbVinder, mVinder, cVinder, bbRekord, mRekord, cRekord] = await Promise.all([
+    hentSæsonOversigt(valgtSæson),
+    hentSæsonVinder(valgtSæson, 'bestball'),
+    hentSæsonVinder(valgtSæson, 'managed'),
+    hentSæsonVinder(valgtSæson, 'chopped'),
+    hentSingleWeekRekord(valgtSæson, 'bestball'),
+    hentSingleWeekRekord(valgtSæson, 'managed'),
+    hentSingleWeekRekord(valgtSæson, 'chopped'),
+  ])
 
   return (
     <div>
@@ -127,32 +138,40 @@ async function SæsonView({
         ))}
       </div>
 
-      <SæsonsVindere oversigt={oversigt} />
+      <SæsonsVindere
+        bb={bbVinder}
+        m={mVinder}
+        c={cVinder}
+      />
+
+      <UgeRekorder bb={bbRekord} m={mRekord} c={cRekord} />
 
       <div className={`grid grid-cols-1 gap-6 mt-8 ${oversigt.chopped.entries.length > 0 ? 'xl:grid-cols-3' : 'xl:grid-cols-2'}`}>
-        <SæsonTabel titel="🎯 Bestball" emoji="🎯" entries={oversigt.bestball.entries} />
-        <SæsonTabel titel="⚙️ Managed" emoji="⚙️" entries={oversigt.managed.entries} visWins />
+        <SæsonTabel titel="🎯 Bestball" entries={oversigt.bestball.entries} />
+        <SæsonTabel titel="⚙️ Managed" entries={oversigt.managed.entries} visWins />
         {oversigt.chopped.entries.length > 0 && (
-          <SæsonTabel titel="🔪 Chopped" emoji="🔪" entries={oversigt.chopped.entries} />
+          <SæsonTabel titel="🔪 Chopped" entries={oversigt.chopped.entries} />
         )}
       </div>
     </div>
   )
 }
 
-function SæsonsVindere({ oversigt }: { oversigt: SæsonOversigt }) {
-  const bbWinner = oversigt.bestball.entries[0]
-  const mWinner = oversigt.managed.entries[0]
-  const cWinner = oversigt.chopped.entries[0]
-
-  const harData = bbWinner || mWinner || cWinner
-  if (!harData) return null
-
+function SæsonsVindere({
+  bb,
+  m,
+  c,
+}: {
+  bb: SæsonVinder | null
+  m: SæsonVinder | null
+  c: SæsonVinder | null
+}) {
+  if (!bb && !m && !c) return null
   return (
     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-      {bbWinner && <VinderKort emoji="🎯" type="Bestball" entry={bbWinner} />}
-      {mWinner && <VinderKort emoji="⚙️" type="Managed" entry={mWinner} />}
-      {cWinner && <VinderKort emoji="🔪" type="Chopped" entry={cWinner} />}
+      {bb && <VinderKort emoji="🎯" type="Bestball" vinder={bb} />}
+      {m && <VinderKort emoji="⚙️" type="Managed" vinder={m} />}
+      {c && <VinderKort emoji="🔪" type="Chopped" vinder={c} />}
     </div>
   )
 }
@@ -160,21 +179,67 @@ function SæsonsVindere({ oversigt }: { oversigt: SæsonOversigt }) {
 function VinderKort({
   emoji,
   type,
-  entry,
+  vinder,
 }: {
   emoji: string
   type: string
-  entry: LeaderboardEntry
+  vinder: SæsonVinder
 }) {
   return (
     <div className="bg-gradient-to-br from-yellow-900/40 to-yellow-800/20 border border-yellow-700/40 rounded-xl p-5">
       <div className="text-yellow-400 text-xs font-semibold uppercase tracking-wider">
         {emoji} {type} — Sæsonvinder
       </div>
-      <div className="text-2xl font-bold text-white mt-2">{entry.displayName}</div>
+      <div className="text-2xl font-bold text-white mt-2">{vinder.displayName}</div>
       <div className="text-gray-400 text-sm mt-1">
-        {entry.totalPoints.toFixed(1)} point
-        {entry.wins !== undefined && ` · ${entry.wins} sejre`}
+        {vinder.points.toFixed(1)} point
+      </div>
+      <div className="text-gray-500 text-xs mt-2">{vinder.beskrivelse}</div>
+    </div>
+  )
+}
+
+function UgeRekorder({
+  bb,
+  m,
+  c,
+}: {
+  bb: UgeRekord | null
+  m: UgeRekord | null
+  c: UgeRekord | null
+}) {
+  if (!bb && !m && !c) return null
+  return (
+    <div className="mt-6">
+      <h3 className="text-sm font-semibold text-gray-400 uppercase tracking-wider mb-3">
+        ⚡ Højeste enkeltscore i grundspillet
+      </h3>
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+        {bb && <UgeRekordKort emoji="🎯" type="Bestball" rekord={bb} />}
+        {m && <UgeRekordKort emoji="⚙️" type="Managed" rekord={m} />}
+        {c && <UgeRekordKort emoji="🔪" type="Chopped" rekord={c} />}
+      </div>
+    </div>
+  )
+}
+
+function UgeRekordKort({
+  emoji,
+  type,
+  rekord,
+}: {
+  emoji: string
+  type: string
+  rekord: UgeRekord
+}) {
+  return (
+    <div className="bg-gradient-to-br from-indigo-900/30 to-indigo-800/10 border border-indigo-700/30 rounded-xl p-5">
+      <div className="text-indigo-400 text-xs font-semibold uppercase tracking-wider">
+        {emoji} {type}
+      </div>
+      <div className="text-xl font-bold text-white mt-2">{rekord.displayName}</div>
+      <div className="text-gray-400 text-sm mt-1">
+        {rekord.points.toFixed(1)} point · Uge {rekord.week} · {rekord.leagueName}
       </div>
     </div>
   )
