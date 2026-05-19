@@ -2,7 +2,10 @@ import Link from 'next/link'
 import { calculateDraftStatistics, type ADPStats } from '@/lib/draft-stats'
 import { listSæsoner } from '@/lib/historie'
 
-export const revalidate = 86400
+// Draft picks never change once a draft completes — cache aggressively. If
+// you need to force a refresh (e.g. during a live draft), push any commit or
+// trigger a Vercel redeploy.
+export const revalidate = 2592000 // 30 days
 
 export default async function DraftStatistikPage({
   searchParams,
