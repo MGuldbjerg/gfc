@@ -47,8 +47,10 @@ export async function computeLeaderboard(
         if (!owner) continue
 
         const key = owner.username
-        const totalPoints = roster.settings?.fpts_for_decimal || roster.settings?.fpts_for || 0
-        const wins = roster.settings?.wins || 0
+        const fpts = roster.settings?.fpts ?? 0
+        const fptsDec = roster.settings?.fpts_decimal ?? 0
+        const totalPoints = fpts + fptsDec / 100
+        const wins = roster.settings?.wins ?? 0
 
         if (!userMap.has(key)) {
           userMap.set(key, {
