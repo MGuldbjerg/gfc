@@ -1,0 +1,17 @@
+name: Dagligt resumé
+
+on:
+  schedule:
+    # Kører hver dag kl. 08:00 dansk tid (07:00 UTC, +1 om vinteren)
+    - cron: '0 7 * * *'
+  workflow_dispatch:
+
+jobs:
+  resume:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Send dagligt aktivitetsresumé via Brevo
+        run: |
+          curl -s -X POST \
+            -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}" \
+            https://gfc-seven.vercel.app/api/admin/dagligt-resume
