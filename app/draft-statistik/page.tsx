@@ -1,160 +1,159 @@
-'use client'
-
-import { useEffect, useState } from 'react'
 import Link from 'next/link'
-import type { DraftStatistics, ADPStats } from '@/lib/draft-stats'
+import { calculateDraftStatistics, type ADPStats } from '@/lib/draft-stats'
+import { listSæsoner } from '@/lib/historie'
 
-export default function DraftStatisticsPage() {
-  const [stats, setStats] = useState<DraftStatistics | null>(null)
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
+export const revalidate = 86400
 
-  useEffect(() => {
-    async function loadDraftStats() {
-      try {
-        setLoading(true)
-        setError(null)
+export default async function DraftStatistikPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ saeson?: string }>
+}) {
+  const sæsoner = listSæsoner()
+  const { saeson } = await searchParams
+  const valgtSæson = sæsoner.includes(saeson ?? '') ? saeson! : sæsoner[0]
 
-        // Call API endpoint
-        const res = await fetch('/api/draft-statistics')
-        if (!res.ok) throw new Error('Kunne ikke hente draft-statistik')
-
-        const data = await res.json()
-        setStats(data)
-      } catch (err) {
-        console.error('Failed to load draft stats:', err)
-        setError('Kunne ikke indlæse draft-statistik. Drafts er muligvis ikke færdige endnu.')
-      } finally {
-        setLoading(false)
-      }
-    }
-
-    loadDraftStats()
-  }, [])
-
-  if (loading) {
-    return (
-      <main className="min-h-screen bg-gray-950 flex items-center justify-center">
-        <div className="text-gray-500">Indlæser draft-statistik...</div>
-      </main>
-    )
-  }
-
-  if (error) {
-    return (
-      <main className="min-h-screen bg-gray-950 flex items-center justify-center">
-        <div className="text-red-400">{error}</div>
-      </main>
-    )
-  }
-
-  if (!stats) {
-    return (
-      <main className="min-h-screen bg-gray-950 flex items-center justify-center">
-        <div className="text-gray-500">Ingen data tilgængelig</div>
-      </main>
-    )
-  }
+  const stats = valgtSæson ? await calculateDraftStatistics(valgtSæson) : null
 
   return (
     <main className="min-h-screen bg-gray-950 text-white p-4 md:p-8">
-      <div className="max-w-7xl mx-auto">
-        {/* Header */}
+      <div className="max-w-6xl mx-auto">
         <div className="mb-8">
-          <Link href="/" className="text-gray-500 hover:text-white text-sm transition-colors">
-            ← Tilbage
-          </Link>
-          <h1 className="text-4xl font-bold mt-4 mb-2">📊 Draft-statistik</h1>
-          <p className="text-gray-400">ADP, udsving, og drafttendenser på tværs af ligaer</p>
+          <h1 className="text-4xl font-bold mb-2">📊 Draftstatistik</h1>
+          <p className="text-gray-400">
+            ADP, udsving og drafttendenser på tværs af GFC-ligaer.
+          </p>
         </div>
 
-        {/* Statistics Grid */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-          {/* Top ADP */}
-          <section>
-            <h2 className="text-2xl font-semibold mb-4">📈 Højeste ADP (mest valgt)</h2>
-            <StatisticsTable stats={stats.topADP} columns={['playerName', 'adp', 'picks']} />
-          </section>
+        {sæsoner.length === 0 ? (
+          <p className="text-gray-500">Ingen draftdata endnu.</p>
+        ) : (
+          <>
+            <div className="flex flex-wrap items-center gap-2 mb-8">
+              <span className="text-sm text-gray-500 mr-2">Sæson:</span>
+              {sæsoner.map(s => (
+                <Link
+                  key={s}
+                  href={`/draft-statistik?saeson=${s}`}
+                  className={`px-3 py-1.5 rounded-md text-sm font-medium transition-colors
+                    ${s === valgtSæson
+                      ? 'bg-indigo-600 text-white'
+                      : 'bg-gray-800 text-gray-300 hover:bg-gray-700'}`}
+                >
+                  {s}
+                </Link>
+              ))}
+            </div>
 
-          {/* Biggest Swings */}
-          <section>
-            <h2 className="text-2xl font-semibold mb-4">⚡ Største udsving</h2>
-            <StatisticsTable
-              stats={stats.adpSwings}
-              columns={['playerName', 'minPick', 'maxPick', 'variance']}
-            />
-          </section>
+            {!stats || stats.topADP.length === 0 ? (
+              <p className="text-gray-500">
+                Ingen draftdata for {valgtSæson}. Drafts er muligvis ikke afsluttet endnu.
+              </p>
+            ) : (
+              <div className="flex flex-col gap-10">
+                <Sektion
+                  titel="📈 Højeste ADP — mest valgt"
+                  beskrivelse="Spillere med lavest gennemsnitlig draft-position på tværs af ligaer."
+                  stats={stats.topADP}
+                  visBåde="adp+picks"
+                />
 
-          {/* Most Consistent */}
-          <section className="lg:col-span-2">
-            <h2 className="text-2xl font-semibold mb-4">✅ Mest konsistente picks</h2>
-            <StatisticsTable
-              stats={stats.mostConsistent}
-              columns={['playerName', 'adp', 'minPick', 'maxPick']}
-            />
-          </section>
-        </div>
+                <Sektion
+                  titel="⚡ Største udsving"
+                  beskrivelse="Spillere med størst forskel mellem tidligste og seneste pick."
+                  stats={stats.adpSwings}
+                  visBåde="udsving"
+                />
 
-        <p className="text-center text-gray-700 text-xs mt-10">
-          Data fra Sleeper Draft API · Opdateret efter draftets afslutning
-        </p>
+                <Sektion
+                  titel="✅ Mest konsistente picks"
+                  beskrivelse="Spillere draftet i ~samme runde på tværs af alle ligaer (minimum 3 drafts)."
+                  stats={stats.mostConsistent}
+                  visBåde="udsving"
+                />
+
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                  <Sektion
+                    titel="⚙️ Managed — top ADP"
+                    beskrivelse="Tidligste draftede spillere i managed-ligaer."
+                    stats={stats.perFormat.managed}
+                    visBåde="adp+picks"
+                  />
+                  <Sektion
+                    titel="🎯 Bestball — top ADP"
+                    beskrivelse="Tidligste draftede spillere i bestball-ligaer."
+                    stats={stats.perFormat.bestball}
+                    visBåde="adp+picks"
+                  />
+                </div>
+              </div>
+            )}
+          </>
+        )}
       </div>
     </main>
   )
 }
 
-interface TableProps {
+type Visning = 'adp+picks' | 'udsving'
+
+function Sektion({
+  titel,
+  beskrivelse,
+  stats,
+  visBåde,
+}: {
+  titel: string
+  beskrivelse: string
   stats: ADPStats[]
-  columns: Array<'playerName' | 'adp' | 'picks' | 'minPick' | 'maxPick' | 'variance'>
-}
-
-function StatisticsTable({ stats, columns }: TableProps) {
-  if (stats.length === 0) {
-    return <p className="text-gray-600 text-sm">Ingen data tilgængelig</p>
-  }
-
+  visBåde: Visning
+}) {
   return (
-    <div className="bg-gray-900 rounded-xl overflow-hidden">
-      <table className="w-full text-sm">
-        <thead>
-          <tr className="text-gray-500 text-xs border-b border-gray-800">
-            {columns.includes('playerName') && <th className="text-left px-4 py-3">Spiller</th>}
-            {columns.includes('adp') && <th className="text-right px-4 py-3">ADP</th>}
-            {columns.includes('picks') && <th className="text-right px-4 py-3">Picks</th>}
-            {columns.includes('minPick') && <th className="text-right px-4 py-3">Min</th>}
-            {columns.includes('maxPick') && <th className="text-right px-4 py-3">Max</th>}
-            {columns.includes('variance') && <th className="text-right px-4 py-3">Udsving</th>}
-          </tr>
-        </thead>
-        <tbody>
-          {stats.slice(0, 20).map((stat, idx) => (
-            <tr key={stat.playerId} className="border-b border-gray-800/50 hover:bg-gray-800/30">
-              {columns.includes('playerName') && (
-                <td className="px-4 py-3">
-                  <div className="font-medium">{stat.playerName}</div>
-                </td>
-              )}
-              {columns.includes('adp') && (
-                <td className="px-4 py-3 text-right font-mono text-indigo-400">
-                  {stat.adp.toFixed(1)}
-                </td>
-              )}
-              {columns.includes('picks') && (
-                <td className="px-4 py-3 text-right font-mono">{stat.picks}</td>
-              )}
-              {columns.includes('minPick') && (
-                <td className="px-4 py-3 text-right font-mono text-green-400">{stat.minPick}</td>
-              )}
-              {columns.includes('maxPick') && (
-                <td className="px-4 py-3 text-right font-mono text-red-400">{stat.maxPick}</td>
-              )}
-              {columns.includes('variance') && (
-                <td className="px-4 py-3 text-right font-mono text-orange-400">{stat.variance}</td>
-              )}
-            </tr>
-          ))}
-        </tbody>
-      </table>
-    </div>
+    <section>
+      <h2 className="text-2xl font-semibold mb-1">{titel}</h2>
+      <p className="text-gray-500 text-sm mb-3">{beskrivelse}</p>
+      {stats.length === 0 ? (
+        <p className="text-gray-600 text-sm">Ingen data</p>
+      ) : (
+        <div className="bg-gray-900 rounded-xl overflow-hidden">
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="text-gray-500 text-xs border-b border-gray-800">
+                <th className="text-center px-3 py-2 w-10">#</th>
+                <th className="text-left px-3 py-2">Spiller</th>
+                <th className="text-right px-3 py-2">ADP</th>
+                {visBåde === 'adp+picks' && <th className="text-right px-3 py-2">Drafts</th>}
+                {visBåde === 'udsving' && (
+                  <>
+                    <th className="text-right px-3 py-2">Min</th>
+                    <th className="text-right px-3 py-2">Max</th>
+                    <th className="text-right px-3 py-2">Udsving</th>
+                  </>
+                )}
+              </tr>
+            </thead>
+            <tbody>
+              {stats.map((s, i) => (
+                <tr key={s.playerId} className="border-b border-gray-800/50 hover:bg-gray-800/30">
+                  <td className="px-3 py-2 text-center text-gray-500">{i + 1}</td>
+                  <td className="px-3 py-2 font-medium">{s.playerName}</td>
+                  <td className="px-3 py-2 text-right font-mono text-indigo-400">{s.adp.toFixed(1)}</td>
+                  {visBåde === 'adp+picks' && (
+                    <td className="px-3 py-2 text-right font-mono text-gray-400">{s.picks}</td>
+                  )}
+                  {visBåde === 'udsving' && (
+                    <>
+                      <td className="px-3 py-2 text-right font-mono text-green-400">{s.minPick}</td>
+                      <td className="px-3 py-2 text-right font-mono text-red-400">{s.maxPick}</td>
+                      <td className="px-3 py-2 text-right font-mono text-orange-400">{s.variance}</td>
+                    </>
+                  )}
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+    </section>
   )
 }

@@ -92,6 +92,32 @@ export async function fetchDraftPicks(draftId: string) {
   return res.json()
 }
 
+export interface SleeperPlayer {
+  player_id: string
+  first_name?: string | null
+  last_name?: string | null
+  full_name?: string | null
+  position?: string | null
+  team?: string | null
+}
+
+// Fetch the full NFL player dictionary. ~5MB — Next.js fetch cache holds it
+// for a day so day-to-day pages are fast.
+export async function fetchPlayers(): Promise<Record<string, SleeperPlayer>> {
+  const res = await fetch(`${SLEEPER_BASE_URL}/players/nfl`, {
+    next: { revalidate: 86400 },
+  })
+  if (!res.ok) throw new Error(`Sleeper API error: ${res.status}`)
+  return res.json()
+}
+
+export function playerLabel(p: SleeperPlayer | undefined, fallback: string): string {
+  if (!p) return fallback
+  const name = p.full_name || [p.first_name, p.last_name].filter(Boolean).join(' ')
+  const pos = p.position ? ` (${p.position}${p.team ? ' ' + p.team : ''})` : p.team ? ` (${p.team})` : ''
+  return name ? `${name}${pos}` : fallback
+}
+
 // Legacy aliases — older code uses get* names. Keep both to avoid churn.
 export const getLeague = fetchLeague
 export const getRosters = fetchRosters
