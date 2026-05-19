@@ -38,15 +38,21 @@ export async function computeLeaderboard(
       })
     )
 
-    // Aggregate data: collect entries by user and sum their points/wins
+    // Aggregate data per user across all leagues for this season+type.
+    // The Sleeper /league/{id}/users endpoint does NOT return `username`, so
+    // we key by `user_id` (always present) to avoid collapsing every roster
+    // into a single ghost entry.
     const userMap = new Map<string, LeaderboardEntry>()
 
     for (const { rosters, users } of allRosters) {
       for (const roster of rosters) {
         const owner = users[roster.owner_id]
-        if (!owner) continue
+        if (!owner || !owner.user_id) continue
 
-        const key = owner.username
+        const key = owner.user_id
+        const displayName = owner.display_name || owner.username || owner.user_id
+        const usernameSlug = owner.username || owner.display_name || owner.user_id
+
         const fpts = roster.settings?.fpts ?? 0
         const fptsDec = roster.settings?.fpts_decimal ?? 0
         const totalPoints = fpts + fptsDec / 100
@@ -54,9 +60,9 @@ export async function computeLeaderboard(
 
         if (!userMap.has(key)) {
           userMap.set(key, {
-            rank: 0, // Will be assigned after sorting
-            username: owner.username,
-            displayName: owner.display_name || owner.username,
+            rank: 0,
+            username: usernameSlug,
+            displayName,
             leagueType: type,
             totalPoints,
             wins: type === 'managed' ? wins : undefined,

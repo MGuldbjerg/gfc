@@ -207,7 +207,7 @@ function SæsonTabel({
               </tr>
             </thead>
             <tbody>
-              {entries.slice(0, 20).map(entry => (
+              {entries.slice(0, 25).map(entry => (
                 <tr
                   key={`${entry.leagueType}-${entry.username}`}
                   className="border-b border-gray-800/50 hover:bg-gray-800/30"
@@ -313,7 +313,7 @@ function AllTimeTabel({
               </tr>
             </thead>
             <tbody>
-              {entries.slice(0, 20).map((entry, i) => (
+              {entries.slice(0, 25).map((entry, i) => (
                 <tr key={entry.username} className="border-b border-gray-800/50 hover:bg-gray-800/30">
                   <td className="px-3 py-2 text-center text-gray-500">{i + 1}</td>
                   <td className="px-3 py-2 font-medium">{entry.displayName}</td>

@@ -33,9 +33,9 @@ export default async function LeaderboardPage() {
           <section>
             <h2 className="text-xl font-semibold mb-3 flex items-center gap-2">
               🎯 <span>Bestball</span>
-              <span className="text-sm font-normal text-gray-500">Top 20 total point</span>
+              <span className="text-sm font-normal text-gray-500">Top 25 total point</span>
             </h2>
-            <LeaderboardTable entries={bestball.entries} type="bestball" />
+            <LeaderboardTable entries={bestball.entries.slice(0, 25)} type="bestball" />
 
             <h3 className="text-lg font-semibold mt-6 mb-3 flex items-center gap-2">
               ⚡ <span>Ugentlige topscorer</span>
@@ -47,9 +47,9 @@ export default async function LeaderboardPage() {
           <section>
             <h2 className="text-xl font-semibold mb-3 flex items-center gap-2">
               ⚙️ <span>Managed</span>
-              <span className="text-sm font-normal text-gray-500">Top 20 wins &amp; point</span>
+              <span className="text-sm font-normal text-gray-500">Top 25 wins &amp; point</span>
             </h2>
-            <LeaderboardTable entries={managed.entries} type="managed" />
+            <LeaderboardTable entries={managed.entries.slice(0, 25)} type="managed" />
 
             <h3 className="text-lg font-semibold mt-6 mb-3 flex items-center gap-2">
               ⚡ <span>Ugentlige topscorer</span>
@@ -64,7 +64,7 @@ export default async function LeaderboardPage() {
                 🔪 <span>Chopped</span>
                 <span className="text-sm font-normal text-gray-500">Guillotine — én ryger ud om ugen</span>
               </h2>
-              <LeaderboardTable entries={chopped.entries} type="chopped" />
+              <LeaderboardTable entries={chopped.entries.slice(0, 25)} type="chopped" />
 
               <h3 className="text-lg font-semibold mt-6 mb-3 flex items-center gap-2">
                 ⚡ <span>Ugentlige topscorer</span>
