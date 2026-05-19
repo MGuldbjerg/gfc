@@ -66,6 +66,22 @@ export async function upsertKontakt({
   })
 }
 
+// Send magic-link login mail via Brevo transactional API.
+export async function sendMagicLinkMail({
+  email,
+  url,
+}: {
+  email: string
+  url: string
+}) {
+  await brevoFetch('/smtp/email', 'POST', {
+    to: [{ email }],
+    sender: { name: 'Guldbjergs Fantasy Challenge', email: process.env.BREVO_SENDER_EMAIL },
+    subject: 'Log ind på Guldbjergs Fantasy Challenge',
+    htmlContent: magicLinkHtml({ url }),
+  })
+}
+
 // Send velkomstmail til ny deltager
 export async function sendVelkomstMail({
   email,
@@ -133,6 +149,20 @@ function baseLayout(indhold: string) {
   </table>
 </body>
 </html>`
+}
+
+function magicLinkHtml({ url }: { url: string }) {
+  return baseLayout(`
+    <h2 style="margin:0 0 16px;color:#fff;font-size:20px;">Klik for at logge ind</h2>
+    <p style="margin:0 0 16px;line-height:1.6;">Tryk på knappen nedenfor for at logge ind på Guldbjergs Fantasy Challenge. Linket virker i 24 timer.</p>
+    <table cellpadding="0" cellspacing="0" style="margin:0 0 24px;"><tr><td>
+      <a href="${url}"
+         style="display:inline-block;background:#4f46e5;color:#fff;text-decoration:none;padding:14px 28px;border-radius:8px;font-weight:600;">
+        Log ind
+      </a>
+    </td></tr></table>
+    <p style="margin:0;line-height:1.6;color:#94a3b8;font-size:13px;">Hvis du ikke har bedt om at logge ind, kan du bare ignorere denne mail.</p>
+  `)
 }
 
 function velkomstHtml({ displayName, sæson }: { displayName: string; sæson: string }) {

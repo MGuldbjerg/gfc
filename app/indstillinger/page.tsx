@@ -2,10 +2,8 @@
 
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
-import { createClient } from '@/lib/supabase-browser'
 
 export default function IndstillingerPage() {
-  const supabase = createClient()
   const [visSleeper, setVisSleeper] = useState(true)
   const [visBadges, setVisBadges] = useState(true)
   const [nyhedsbrev, setNyhedsbrev] = useState(true)
@@ -15,10 +13,11 @@ export default function IndstillingerPage() {
 
   useEffect(() => {
     async function hentPræferencer() {
-      const { data: { user } } = await supabase.auth.getUser()
-      if (!user) { window.location.href = '/tilmeld'; return }
-
       const res = await fetch('/api/profil/præferencer')
+      if (res.status === 401) {
+        window.location.href = '/log-ind?retur=/indstillinger'
+        return
+      }
       if (res.ok) {
         const data = await res.json()
         setVisSleeper(data.visSleeper ?? true)
@@ -28,7 +27,6 @@ export default function IndstillingerPage() {
       setLoading(false)
     }
     hentPræferencer()
-
   }, [])
 
   async function gemIndstillinger() {
@@ -45,7 +43,7 @@ export default function IndstillingerPage() {
     if (res.ok) {
       setBesked('Indstillinger gemt!')
     } else {
-      const data = await res.json()
+      const data = await res.json().catch(() => ({}))
       setBesked(data.error ?? 'Noget gik galt. Prøv igen.')
     }
   }
@@ -85,8 +83,8 @@ export default function IndstillingerPage() {
   return (
     <main className="min-h-screen bg-gray-950 text-white p-4 md:p-8">
       <div className="max-w-md mx-auto">
-        <Link href="/leaderboard" className="text-gray-500 hover:text-white text-sm transition-colors">
-          ← Leaderboard
+        <Link href="/min-side" className="text-gray-500 hover:text-white text-sm transition-colors">
+          ← Tilbage
         </Link>
 
         <h1 className="text-2xl font-bold mt-6 mb-8">Indstillinger</h1>

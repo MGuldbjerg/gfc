@@ -1,12 +1,12 @@
 // Computes a league-assignment proposal without persisting — used for preview.
 
 import { NextRequest, NextResponse } from 'next/server'
-import { createClient } from '@/lib/supabase-server'
+import { auth } from '@/auth'
 import { query } from '@/lib/turso'
 import { beregnFordeling, type Deltager, type LeagueType } from '@/lib/fordeling'
+import { CURRENT_SEASON } from '@/lib/leagues'
 
 const VALID_TYPES: LeagueType[] = ['bestball', 'managed', 'chopped']
-import { CURRENT_SEASON } from '@/lib/leagues'
 
 type TilmeldingRow = {
   registration_id: string
@@ -17,9 +17,10 @@ type TilmeldingRow = {
 }
 
 export async function POST(req: NextRequest) {
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) return NextResponse.json({ error: 'Ikke autoriseret' }, { status: 401 })
+  const session = await auth()
+  if (!session?.user?.isAdmin) {
+    return NextResponse.json({ error: 'Ikke autoriseret' }, { status: 401 })
+  }
 
   const { ligaStørrelse = 12 } = await req.json().catch(() => ({}))
 

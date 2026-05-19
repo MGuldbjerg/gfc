@@ -51,3 +51,24 @@ CREATE TABLE IF NOT EXISTS badges (
 CREATE INDEX IF NOT EXISTS idx_registrations_season ON registrations(season);
 CREATE INDEX IF NOT EXISTS idx_registrations_profile ON registrations(profile_id);
 CREATE INDEX IF NOT EXISTS idx_badges_profile ON badges(profile_id);
+
+-- Auth.js (NextAuth v5) — JWT sessions + email magic-link provider.
+-- Only the tables required by the email provider are created here; no `session`
+-- table (JWT) and no `account` table (no OAuth providers).
+CREATE TABLE IF NOT EXISTS authjs_user (
+  id TEXT PRIMARY KEY,
+  email TEXT NOT NULL UNIQUE,
+  email_verified TEXT,
+  name TEXT,
+  image TEXT,
+  created_at TEXT NOT NULL DEFAULT (datetime('now'))
+);
+
+CREATE TABLE IF NOT EXISTS authjs_verification_token (
+  identifier TEXT NOT NULL,
+  token TEXT NOT NULL,
+  expires TEXT NOT NULL,
+  PRIMARY KEY (identifier, token)
+);
+
+CREATE INDEX IF NOT EXISTS idx_authjs_user_email ON authjs_user(email);

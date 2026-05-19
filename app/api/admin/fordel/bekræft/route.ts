@@ -1,15 +1,16 @@
 // Persists the league assignment and sends notification emails.
 
 import { NextRequest, NextResponse } from 'next/server'
-import { createClient } from '@/lib/supabase-server'
-import { execute } from '@/lib/turso'
+import { auth } from '@/auth'
+import { execute, queryOne } from '@/lib/turso'
 import { sendLigaTildeling } from '@/lib/brevo'
 import type { LigaForslag } from '@/lib/fordeling'
 
 export async function POST(req: NextRequest) {
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) return NextResponse.json({ error: 'Ikke autoriseret' }, { status: 401 })
+  const session = await auth()
+  if (!session?.user?.isAdmin) {
+    return NextResponse.json({ error: 'Ikke autoriseret' }, { status: 401 })
+  }
 
   const { ligaer, sæson }: { ligaer: LigaForslag[]; sæson: string } = await req.json()
 
@@ -34,19 +35,21 @@ export async function POST(req: NextRequest) {
 
       tildelt++
 
-      // Brevo notification — non-blocking, silent on failure.
-      supabase.auth.admin?.getUserById(deltager.profileId)
-        .then(({ data }) => {
-          if (!data?.user?.email) return
-          sendLigaTildeling({
-            email: data.user.email,
-            displayName: deltager.displayName,
-            ligaNavn: liga.ligaNavn,
-            sleeperLigaUrl: 'https://sleeper.com/leagues',
-            sæson,
-          }).catch(() => {})
+      // Best-effort notification — non-blocking.
+      ;(async () => {
+        const userRow = await queryOne<{ email: string }>(
+          'SELECT email FROM authjs_user WHERE id = ?',
+          [deltager.profileId]
+        )
+        if (!userRow?.email) return
+        await sendLigaTildeling({
+          email: userRow.email,
+          displayName: deltager.displayName,
+          ligaNavn: liga.ligaNavn,
+          sleeperLigaUrl: 'https://sleeper.com/leagues',
+          sæson,
         })
-        .catch(() => {})
+      })().catch(() => {})
     }
   }
 

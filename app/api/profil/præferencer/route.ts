@@ -2,7 +2,7 @@
 // PATCH — update them and sync the newsletter subscription with Brevo.
 
 import { NextRequest, NextResponse } from 'next/server'
-import { createClient } from '@/lib/supabase-server'
+import { auth } from '@/auth'
 import { execute, queryOne } from '@/lib/turso'
 import { tilføjTilNyhedsbrevsliste, fjernFraNyhedsbrevsliste } from '@/lib/brevo'
 
@@ -13,16 +13,14 @@ type PræferenceRow = {
 }
 
 export async function GET() {
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-
-  if (!user) {
+  const session = await auth()
+  if (!session?.user?.id) {
     return NextResponse.json({ error: 'Ikke logget ind' }, { status: 401 })
   }
 
   const row = await queryOne<PræferenceRow>(
     'SELECT vis_sleeper_username, vis_badges, nyhedsbrev FROM profiles WHERE id = ?',
-    [user.id]
+    [session.user.id]
   )
 
   if (!row) {
@@ -37,18 +35,16 @@ export async function GET() {
 }
 
 export async function PATCH(req: NextRequest) {
-  const { visSleeper, visBadges, nyhedsbrev } = await req.json()
-
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-
-  if (!user) {
+  const session = await auth()
+  if (!session?.user?.id) {
     return NextResponse.json({ error: 'Ikke logget ind' }, { status: 401 })
   }
 
+  const { visSleeper, visBadges, nyhedsbrev } = await req.json()
+
   const nuværende = await queryOne<{ nyhedsbrev: number }>(
     'SELECT nyhedsbrev FROM profiles WHERE id = ?',
-    [user.id]
+    [session.user.id]
   )
 
   try {
@@ -63,7 +59,7 @@ export async function PATCH(req: NextRequest) {
         visSleeper === false ? 0 : 1,
         visBadges === false ? 0 : 1,
         nyhedsbrev ? 1 : 0,
-        user.id,
+        session.user.id,
       ]
     )
   } catch (err) {
@@ -71,10 +67,9 @@ export async function PATCH(req: NextRequest) {
     return NextResponse.json({ error: 'Kunne ikke gemme indstillinger' }, { status: 500 })
   }
 
-  // Sync newsletter list with Brevo if subscription state changed.
   const previous = nuværende?.nyhedsbrev === 1
-  if (user.email && previous !== !!nyhedsbrev) {
-    const email = user.email
+  if (session.user.email && previous !== !!nyhedsbrev) {
+    const email = session.user.email
     const action = nyhedsbrev ? tilføjTilNyhedsbrevsliste({ email }) : fjernFraNyhedsbrevsliste({ email })
     action.catch(err => console.error('Brevo-fejl:', err))
   }

@@ -19,7 +19,7 @@ export default function HomePage() {
 
           <div className="mt-10 flex flex-col sm:flex-row gap-3 justify-center items-center">
             <Link
-              href="/tilmeld"
+              href="/log-ind"
               className="bg-indigo-600 hover:bg-indigo-500 text-white font-semibold px-8 py-4 rounded-full text-base shadow-lg shadow-indigo-900/40 transition-colors"
             >
               {t(tekst.landing.primaerCta)}
@@ -78,7 +78,7 @@ export default function HomePage() {
           <h2 className="text-2xl sm:text-3xl font-bold mb-3">{tekst.landing.finalCtaTitel}</h2>
           <p className="text-gray-300 mb-8 max-w-xl mx-auto">{tekst.landing.finalCtaTekst}</p>
           <Link
-            href="/tilmeld"
+            href="/log-ind"
             className="inline-block bg-indigo-600 hover:bg-indigo-500 text-white font-semibold px-8 py-4 rounded-full text-base shadow-lg shadow-indigo-900/40 transition-colors"
           >
             {t(tekst.landing.finalCta)}

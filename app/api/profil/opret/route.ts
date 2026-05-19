@@ -1,17 +1,21 @@
-// Creates a profile + registration in Turso and syncs the contact to Brevo.
-// Auth still lives in Supabase — only data storage moved to Turso.
+// Creates or updates a profile in Turso. Does NOT create a season registration —
+// that's a separate action at /api/saeson/tilmeld. Auth via Auth.js.
 
 import { NextRequest, NextResponse } from 'next/server'
-import { randomUUID } from 'node:crypto'
-import { createClient } from '@/lib/supabase-server'
+import { auth } from '@/auth'
 import { execute, queryOne } from '@/lib/turso'
-import { upsertKontakt, sendVelkomstMail } from '@/lib/brevo'
+import { upsertKontakt } from '@/lib/brevo'
 import { getUserByUsername } from '@/lib/sleeper'
 
 export async function POST(req: NextRequest) {
-  const { email, displayName, sleeperUsername, valgteRækker, sæson, visSleeper, visBadges, nyhedsbrev } = await req.json()
+  const session = await auth()
+  if (!session?.user?.id || !session.user.email) {
+    return NextResponse.json({ error: 'Ikke logget ind' }, { status: 401 })
+  }
 
-  if (!email || !displayName || !sleeperUsername || !sæson) {
+  const { displayName, sleeperUsername, visSleeper, visBadges, nyhedsbrev } = await req.json()
+
+  if (!displayName || !sleeperUsername) {
     return NextResponse.json({ error: 'Manglende felter' }, { status: 400 })
   }
 
@@ -23,17 +27,9 @@ export async function POST(req: NextRequest) {
     )
   }
 
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-
-  if (!user) {
-    return NextResponse.json({ error: 'Ikke logget ind' }, { status: 401 })
-  }
-
-  // Reject if another user already owns this Sleeper username.
   const existing = await queryOne<{ id: string }>(
     'SELECT id FROM profiles WHERE username = ? AND id <> ?',
-    [sleeperUsername, user.id]
+    [sleeperUsername, session.user.id]
   )
   if (existing) {
     return NextResponse.json(
@@ -55,7 +51,7 @@ export async function POST(req: NextRequest) {
          nyhedsbrev = excluded.nyhedsbrev,
          updated_at = datetime('now')`,
       [
-        user.id,
+        session.user.id,
         sleeperUsername,
         displayName,
         sleeperUser.user_id,
@@ -76,20 +72,13 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Kunne ikke oprette profil' }, { status: 500 })
   }
 
-  await execute(
-    `INSERT INTO registrations (id, profile_id, season, preferred_types, status)
-     VALUES (?, ?, ?, ?, 'registered')
-     ON CONFLICT(profile_id, season) DO UPDATE SET
-       preferred_types = excluded.preferred_types,
-       status = 'registered'`,
-    [randomUUID(), user.id, sæson, JSON.stringify(valgteRækker ?? [])]
-  )
-
-  // Best-effort Brevo sync — never blocks registration.
-  Promise.all([
-    upsertKontakt({ email, displayName, sleeperUsername, sæson }),
-    sendVelkomstMail({ email, displayName, sæson }),
-  ]).catch(err => console.error('Brevo-fejl:', err))
+  // Best-effort Brevo sync.
+  upsertKontakt({
+    email: session.user.email,
+    displayName,
+    sleeperUsername,
+    sæson: 'profil',
+  }).catch(err => console.error('Brevo-fejl:', err))
 
   return NextResponse.json({ ok: true })
 }

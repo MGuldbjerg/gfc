@@ -1,36 +1,37 @@
-import { createServerClient } from '@supabase/ssr'
-import { NextResponse, type NextRequest } from 'next/server'
+import NextAuth from 'next-auth'
+import { NextResponse } from 'next/server'
+import { authConfig } from './auth.config'
 
-export async function middleware(request: NextRequest) {
-  let supabaseResponse = NextResponse.next({ request })
+const { auth } = NextAuth(authConfig)
 
-  const supabase = createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    {
-      cookies: {
-        getAll: () => request.cookies.getAll(),
-        setAll: (cookiesToSet) => {
-          cookiesToSet.forEach(({ name, value }) => request.cookies.set(name, value))
-          supabaseResponse = NextResponse.next({ request })
-          cookiesToSet.forEach(({ name, value, options }) =>
-            supabaseResponse.cookies.set(name, value, options)
-          )
-        },
-      },
-    }
-  )
+export default auth(req => {
+  const { pathname } = req.nextUrl
+  const session = req.auth
 
-  const { data: { user } } = await supabase.auth.getUser()
+  const requiresAuth =
+    pathname.startsWith('/admin') ||
+    pathname.startsWith('/min-side') ||
+    pathname.startsWith('/profil-setup') ||
+    pathname.startsWith('/saeson') ||
+    pathname.startsWith('/indstillinger')
 
-  // Beskyt /admin-ruter — kræver login
-  if (request.nextUrl.pathname.startsWith('/admin') && !user) {
-    return NextResponse.redirect(new URL('/tilmeld', request.url))
+  if (requiresAuth && !session) {
+    const url = new URL('/log-ind', req.url)
+    url.searchParams.set('retur', pathname)
+    return NextResponse.redirect(url)
   }
 
-  return supabaseResponse
-}
+  if (pathname.startsWith('/admin') && !session?.user?.isAdmin) {
+    return NextResponse.redirect(new URL('/min-side', req.url))
+  }
+})
 
 export const config = {
-  matcher: ['/admin/:path*'],
+  matcher: [
+    '/admin/:path*',
+    '/min-side/:path*',
+    '/profil-setup',
+    '/saeson/:path*',
+    '/indstillinger',
+  ],
 }
