@@ -205,7 +205,7 @@ function aggregateLeaderboards(
       if (!aggregated.has(key)) {
         aggregated.set(key, {
           ...entry,
-          seasons: new Set([entry.leagueType === type ? result.entries[0]?.league?.split(' ')[0] ?? '2024' : '2024']),
+          seasons: new Set(['2024']),
           allTimePoints: 0,
           allTimeWins: 0,
           appearances: 0,

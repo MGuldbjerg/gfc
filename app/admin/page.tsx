@@ -1,37 +1,59 @@
 import Link from 'next/link'
-import { createClient } from '@/lib/supabase-server'
+import { query } from '@/lib/turso'
 import { CURRENT_SEASON } from '@/lib/leagues'
 import AdminTilmeldinger from './AdminTilmeldinger'
 
 export const dynamic = 'force-dynamic'
 
-export default async function AdminPage() {
-  const supabase = await createClient()
+type Row = {
+  id: string
+  season: string
+  preferred_types: string | null
+  assigned_league_name: string | null
+  status: string
+  created_at: string
+  profile_id: string
+  display_name: string
+  username: string
+}
 
-  const { data: tilmeldinger } = await supabase
-    .from('registrations')
-    .select(`
-      id,
-      season,
-      preferred_types,
-      assigned_league_name,
-      status,
-      created_at,
-      profiles (
-        display_name,
-        username,
-        id
-      )
-    `)
-    .eq('season', CURRENT_SEASON)
-    .order('created_at', { ascending: false })
+function parsePreferredTypes(raw: string | null): string[] {
+  if (!raw) return []
+  try {
+    const parsed = JSON.parse(raw)
+    return Array.isArray(parsed) ? parsed : []
+  } catch {
+    return []
+  }
+}
+
+export default async function AdminPage() {
+  const rows = await query<Row>(
+    `SELECT r.id, r.season, r.preferred_types, r.assigned_league_name, r.status, r.created_at,
+            p.id AS profile_id, p.display_name, p.username
+       FROM registrations r
+       JOIN profiles p ON p.id = r.profile_id
+      WHERE r.season = ?
+      ORDER BY r.created_at DESC`,
+    [CURRENT_SEASON]
+  )
+
+  const tilmeldinger = rows.map(r => ({
+    id: r.id,
+    season: r.season,
+    preferred_types: parsePreferredTypes(r.preferred_types),
+    assigned_league_name: r.assigned_league_name,
+    status: r.status,
+    created_at: r.created_at,
+    profiles: { id: r.profile_id, display_name: r.display_name, username: r.username },
+  }))
 
   const stats = {
-    total: tilmeldinger?.length ?? 0,
-    tildelt: tilmeldinger?.filter(t => t.status === 'assigned').length ?? 0,
-    bestball: tilmeldinger?.filter(t => t.preferred_types?.includes('bestball')).length ?? 0,
-    managed: tilmeldinger?.filter(t => t.preferred_types?.includes('managed')).length ?? 0,
-    chopped: tilmeldinger?.filter(t => t.preferred_types?.includes('chopped')).length ?? 0,
+    total: tilmeldinger.length,
+    tildelt: tilmeldinger.filter(t => t.status === 'assigned').length,
+    bestball: tilmeldinger.filter(t => t.preferred_types.includes('bestball')).length,
+    managed: tilmeldinger.filter(t => t.preferred_types.includes('managed')).length,
+    chopped: tilmeldinger.filter(t => t.preferred_types.includes('chopped')).length,
   }
 
   return (
@@ -40,7 +62,6 @@ export default async function AdminPage() {
         <h1 className="text-2xl font-bold mb-2">Admin — GFC {CURRENT_SEASON}</h1>
         <p className="text-gray-500 text-sm mb-8">Tilmeldingsoversigt og ligafordeling</p>
 
-        {/* Stat-kort */}
         <div className="grid grid-cols-2 sm:grid-cols-5 gap-3 mb-8">
           {[
             { label: 'Tilmeldte', value: stats.total, color: 'text-white' },
@@ -56,7 +77,6 @@ export default async function AdminPage() {
           ))}
         </div>
 
-        {/* Handlinger */}
         <div className="flex gap-3 mb-6">
           <Link href="/admin/fordel"
             className="bg-indigo-600 hover:bg-indigo-500 text-white px-5 py-2 rounded-lg font-medium transition-colors text-sm">
@@ -64,7 +84,7 @@ export default async function AdminPage() {
           </Link>
         </div>
 
-        <AdminTilmeldinger tilmeldinger={tilmeldinger ?? []} />
+        <AdminTilmeldinger tilmeldinger={tilmeldinger} />
       </div>
     </main>
   )

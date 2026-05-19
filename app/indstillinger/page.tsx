@@ -18,20 +18,17 @@ export default function IndstillingerPage() {
       const { data: { user } } = await supabase.auth.getUser()
       if (!user) { window.location.href = '/tilmeld'; return }
 
-      const { data } = await supabase
-        .from('profiles')
-        .select('vis_sleeper_username, vis_badges, nyhedsbrev')
-        .eq('id', user.id)
-        .single()
-
-      if (data) {
-        setVisSleeper(data.vis_sleeper_username ?? true)
-        setVisBadges(data.vis_badges ?? true)
+      const res = await fetch('/api/profil/præferencer')
+      if (res.ok) {
+        const data = await res.json()
+        setVisSleeper(data.visSleeper ?? true)
+        setVisBadges(data.visBadges ?? true)
         setNyhedsbrev(data.nyhedsbrev ?? true)
       }
       setLoading(false)
     }
     hentPræferencer()
+
   }, [])
 
   async function gemIndstillinger() {

@@ -2,7 +2,7 @@ import type { LeaderboardEntry, LeaderboardResult } from '@/types/sleeper'
 import { fetchRosters, fetchUsers } from './sleeper'
 import { ALL_LEAGUES } from './leagues'
 
-export type LeaderboardType = 'bestball' | 'managed'
+export type LeaderboardType = 'bestball' | 'managed' | 'chopped'
 
 /**
  * Compute leaderboard for a given type and season by aggregating Sleeper API data
@@ -19,7 +19,7 @@ export async function computeLeaderboard(
 
     if (leaguesToFetch.length === 0) {
       console.warn(`No leagues found for ${type} ${season}`)
-      return { entries: [] }
+      return { entries: [], weeklyHighscores: [] }
     }
 
     // Fetch data from all leagues in parallel
@@ -86,9 +86,9 @@ export async function computeLeaderboard(
       entry.rank = idx + 1
     })
 
-    return { entries }
+    return { entries, weeklyHighscores: [] }
   } catch (error) {
     console.error(`Error computing leaderboard for ${type} ${season}:`, error)
-    return { entries: [] }
+    return { entries: [], weeklyHighscores: [] }
   }
 }

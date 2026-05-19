@@ -5,10 +5,13 @@ import LeaderboardTable from './LeaderboardTable'
 export const revalidate = 3600 // genindlæs max én gang i timen
 
 export default async function LeaderboardPage() {
-  const [bestball, managed] = await Promise.all([
+  const [bestball, managed, chopped] = await Promise.all([
     computeLeaderboard('bestball', CURRENT_SEASON),
     computeLeaderboard('managed', CURRENT_SEASON),
+    computeLeaderboard('chopped', CURRENT_SEASON),
   ])
+
+  const harChopped = chopped.entries.length > 0
 
   return (
     <main className="min-h-screen bg-gray-950 text-white p-4 md:p-8">
@@ -24,7 +27,7 @@ export default async function LeaderboardPage() {
         <SeasonHighscoreCard bestball={bestball} managed={managed} />
 
         {/* Tabs */}
-        <div className="grid grid-cols-1 xl:grid-cols-2 gap-6 mt-6">
+        <div className={`grid grid-cols-1 gap-6 mt-6 ${harChopped ? 'xl:grid-cols-3' : 'xl:grid-cols-2'}`}>
 
           {/* Bestball */}
           <section>
@@ -53,6 +56,22 @@ export default async function LeaderboardPage() {
             </h3>
             <WeeklyTable scores={managed.weeklyHighscores} />
           </section>
+
+          {/* Chopped — vises kun når der er data */}
+          {harChopped && (
+            <section>
+              <h2 className="text-xl font-semibold mb-3 flex items-center gap-2">
+                🔪 <span>Chopped</span>
+                <span className="text-sm font-normal text-gray-500">Guillotine — én ryger ud om ugen</span>
+              </h2>
+              <LeaderboardTable entries={chopped.entries} type="chopped" />
+
+              <h3 className="text-lg font-semibold mt-6 mb-3 flex items-center gap-2">
+                ⚡ <span>Ugentlige topscorer</span>
+              </h3>
+              <WeeklyTable scores={chopped.weeklyHighscores} />
+            </section>
+          )}
 
         </div>
 

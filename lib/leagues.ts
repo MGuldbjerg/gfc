@@ -1,4 +1,6 @@
-export type LeagueType = 'bestball' | 'managed'
+export const CURRENT_SEASON = '2026'
+
+export type LeagueType = 'bestball' | 'managed' | 'chopped'
 
 export interface League {
   season: string

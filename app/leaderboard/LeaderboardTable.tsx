@@ -37,7 +37,6 @@ export default function LeaderboardTable({
           <tr className="text-gray-500 text-xs border-b border-gray-800">
             <th className="text-center px-3 py-2 w-10">#</th>
             <th className="text-left px-3 py-2">Hold</th>
-            <th className="text-left px-3 py-2">Liga</th>
             {type === 'managed' && (
               <th className="text-center px-3 py-2">W</th>
             )}
@@ -47,7 +46,7 @@ export default function LeaderboardTable({
         <tbody>
           {entries.map((entry) => (
             <tr
-              key={`${entry.league}-${entry.username}`}
+              key={`${entry.leagueType}-${entry.username}`}
               className="border-b border-gray-800/50 hover:bg-gray-800/30 transition-colors"
             >
               <td className={`text-center px-3 py-2 ${RANK_STYLE[entry.rank] ?? 'text-gray-500'}`}>
@@ -58,7 +57,6 @@ export default function LeaderboardTable({
                   {entry.displayName}
                 </Link>
               </td>
-              <td className="px-3 py-2 text-gray-500 text-xs">{entry.league}</td>
               {type === 'managed' && (
                 <td className="px-3 py-2 text-center text-gray-400">{entry.wins ?? 0}</td>
               )}

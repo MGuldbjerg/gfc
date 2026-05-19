@@ -26,6 +26,22 @@ async function brevoFetch(
   return res
 }
 
+// Add the contact to the newsletter list (idempotent — Brevo upserts).
+export async function tilføjTilNyhedsbrevsliste({ email }: { email: string }) {
+  await brevoFetch('/contacts', 'POST', {
+    email,
+    listIds: [GFC_LIST_ID],
+    updateEnabled: true,
+  })
+}
+
+// Remove the contact from the newsletter list.
+export async function fjernFraNyhedsbrevsliste({ email }: { email: string }) {
+  await brevoFetch(`/contacts/lists/${GFC_LIST_ID}/contacts/remove`, 'POST', {
+    emails: [email],
+  })
+}
+
 // Tilføj eller opdater kontakt i Brevo
 export async function upsertKontakt({
   email,

@@ -1,7 +1,7 @@
-// Returnerer profildata inkl. privatlivspræferencer til ProfilModal
+// Returns profile data incl. privacy preferences for ProfilModal.
 
 import { NextRequest, NextResponse } from 'next/server'
-import { createClient } from '@/lib/supabase-server'
+import { queryOne } from '@/lib/turso'
 import { hentProfilData } from '@/lib/profil'
 import { beregnBadges } from '@/lib/badges'
 
@@ -14,15 +14,12 @@ export async function GET(
   const { brugernavn } = await params
   const username = decodeURIComponent(brugernavn)
 
-  // Hent præferencer fra Supabase (profiler er offentligt læsbare)
-  const supabase = await createClient()
-  const { data: præferencer } = await supabase
-    .from('profiles')
-    .select('vis_sleeper_username, vis_badges')
-    .eq('username', username)
-    .single()
+  // Profiles are publicly readable — no auth needed.
+  const præferencer = await queryOne<{ vis_sleeper_username: number; vis_badges: number }>(
+    'SELECT vis_sleeper_username, vis_badges FROM profiles WHERE username = ?',
+    [username]
+  )
 
-  // Hent Sleeper-data (alle ligaer brugeren har deltaget i)
   const profil = await hentProfilData(username)
   if (!profil) {
     return NextResponse.json({ error: 'Profil ikke fundet' }, { status: 404 })
@@ -36,7 +33,7 @@ export async function GET(
     sleeperAvatar: profil.sleeperAvatar,
     sæsoner: profil.sæsoner,
     badges,
-    vis_sleeper_username: præferencer?.vis_sleeper_username ?? true,
-    vis_badges: præferencer?.vis_badges ?? true,
+    vis_sleeper_username: præferencer ? præferencer.vis_sleeper_username === 1 : true,
+    vis_badges: præferencer ? præferencer.vis_badges === 1 : true,
   })
 }

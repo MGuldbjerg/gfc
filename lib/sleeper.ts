@@ -8,6 +8,7 @@ export interface SleeperUser {
   user_id: string
   username: string
   display_name: string
+  avatar?: string | null
 }
 
 export interface SleeperRoster {
@@ -25,6 +26,14 @@ export interface SleeperRoster {
     fpts_against?: number
     fpts_against_decimal?: number
   }
+}
+
+export async function getUserByUsername(username: string): Promise<SleeperUser | null> {
+  const res = await fetch(`${SLEEPER_BASE_URL}/user/${encodeURIComponent(username)}`)
+  if (!res.ok) return null
+  const data = await res.json().catch(() => null)
+  if (!data || typeof data !== 'object' || !('user_id' in data)) return null
+  return data as SleeperUser
 }
 
 export async function fetchLeague(leagueId: string) {
@@ -57,7 +66,15 @@ export async function fetchUsers(leagueId: string): Promise<Record<string, Sleep
   return userMap
 }
 
-export async function fetchMatchups(leagueId: string, week: number) {
+export interface SleeperMatchup {
+  roster_id: number
+  matchup_id: number | null
+  points: number
+  starters: string[]
+  players: string[]
+}
+
+export async function fetchMatchups(leagueId: string, week: number): Promise<SleeperMatchup[]> {
   const res = await fetch(`${SLEEPER_BASE_URL}/league/${leagueId}/matchups/${week}`)
   if (!res.ok) throw new Error(`Sleeper API error: ${res.status}`)
   return res.json()
@@ -74,3 +91,11 @@ export async function fetchDraftPicks(draftId: string) {
   if (!res.ok) throw new Error(`Sleeper API error: ${res.status}`)
   return res.json()
 }
+
+// Legacy aliases — older code uses get* names. Keep both to avoid churn.
+export const getLeague = fetchLeague
+export const getRosters = fetchRosters
+export const getUsers = fetchUsers
+export const getMatchups = fetchMatchups
+export const getDrafts = fetchDraft
+export const getDraftPicks = fetchDraftPicks

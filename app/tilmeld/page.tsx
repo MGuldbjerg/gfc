@@ -3,8 +3,11 @@
 import { useState } from 'react'
 import { createClient } from '@/lib/supabase-browser'
 import { CURRENT_SEASON } from '@/lib/leagues'
+import { tekst, t } from '@/content/tekst'
 
 type Trin = 'konto' | 'profil' | 'bekræft'
+
+const tx = tekst.tilmeld
 
 export default function TilmeldPage() {
   const [trin, setTrin] = useState<Trin>('konto')
@@ -13,6 +16,9 @@ export default function TilmeldPage() {
   const [displayName, setDisplayName] = useState('')
   const [sleeperUsername, setSleeperUsername] = useState('')
   const [valgteRækker, setValgteRækker] = useState<string[]>(['bestball', 'managed'])
+  const [visSleeper, setVisSleeper] = useState(true)
+  const [visBadges, setVisBadges] = useState(true)
+  const [nyhedsbrev, setNyhedsbrev] = useState(true)
   const [fejl, setFejl] = useState('')
   const [loading, setLoading] = useState(false)
 
@@ -54,6 +60,9 @@ export default function TilmeldPage() {
         sleeperUsername,
         valgteRækker,
         sæson: CURRENT_SEASON,
+        visSleeper,
+        visBadges,
+        nyhedsbrev,
       }),
     })
 
@@ -73,19 +82,22 @@ export default function TilmeldPage() {
     )
   }
 
+  const privatlivState: Record<string, { checked: boolean; set: (v: boolean) => void }> = {
+    visSleeper: { checked: visSleeper, set: setVisSleeper },
+    visBadges: { checked: visBadges, set: setVisBadges },
+    nyhedsbrev: { checked: nyhedsbrev, set: setNyhedsbrev },
+  }
+
   if (trin === 'bekræft') {
     return (
       <main className="min-h-screen bg-gray-950 flex items-center justify-center p-4">
         <div className="bg-gray-900 rounded-2xl p-8 max-w-md w-full text-center">
           <div className="text-5xl mb-4">📬</div>
-          <h1 className="text-2xl font-bold text-white mb-3">Tjek din e-mail</h1>
+          <h1 className="text-2xl font-bold text-white mb-3">{tx.bekraeftTitel}</h1>
           <p className="text-gray-400 leading-relaxed">
-            Vi har sendt en bekræftelsesmail til <strong className="text-white">{email}</strong>.
-            Klik på linket i mailen for at aktivere din konto.
+            {t(tx.bekraeftTekst, { email })}
           </p>
-          <p className="text-gray-600 text-sm mt-4">
-            Kan du ikke finde den? Tjek spam-mappen.
-          </p>
+          <p className="text-gray-600 text-sm mt-4">{tx.bekraeftSpam}</p>
         </div>
       </main>
     )
@@ -98,24 +110,24 @@ export default function TilmeldPage() {
         {/* Header */}
         <div className="text-center mb-8">
           <div className="text-4xl mb-2">🏈</div>
-          <h1 className="text-2xl font-bold text-white">Tilmeld GFC {CURRENT_SEASON}</h1>
+          <h1 className="text-2xl font-bold text-white">{t(tx.titel)}</h1>
           <p className="text-gray-500 text-sm mt-1">
-            {trin === 'konto' ? 'Opret din konto' : 'Fortæl os lidt om dig'}
+            {trin === 'konto' ? tx.trinKonto : tx.trinProfil}
           </p>
         </div>
 
         {/* Trin-indikator */}
         <div className="flex items-center gap-2 mb-8">
-          {['konto', 'profil'].map((t, i) => (
-            <div key={t} className="flex items-center gap-2 flex-1">
+          {['konto', 'profil'].map((step, i) => (
+            <div key={step} className="flex items-center gap-2 flex-1">
               <div className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold shrink-0
-                ${trin === t ? 'bg-indigo-600 text-white' :
-                  (trin === 'profil' && t === 'konto') ? 'bg-green-600 text-white' :
+                ${trin === step ? 'bg-indigo-600 text-white' :
+                  (trin === 'profil' && step === 'konto') ? 'bg-green-600 text-white' :
                   'bg-gray-800 text-gray-500'}`}>
-                {trin === 'profil' && t === 'konto' ? '✓' : i + 1}
+                {trin === 'profil' && step === 'konto' ? '✓' : i + 1}
               </div>
-              <span className={`text-xs ${trin === t ? 'text-white' : 'text-gray-600'}`}>
-                {t === 'konto' ? 'Konto' : 'Profil'}
+              <span className={`text-xs ${trin === step ? 'text-white' : 'text-gray-600'}`}>
+                {step === 'konto' ? 'Konto' : 'Profil'}
               </span>
               {i === 0 && <div className="flex-1 h-px bg-gray-800" />}
             </div>
@@ -132,28 +144,28 @@ export default function TilmeldPage() {
         {trin === 'konto' && (
           <form onSubmit={opretKonto} className="flex flex-col gap-4">
             <div>
-              <label className="text-sm text-gray-400 mb-1 block">E-mail</label>
+              <label className="text-sm text-gray-400 mb-1 block">{tx.emailLabel}</label>
               <input
                 type="email" required value={email}
                 onChange={e => setEmail(e.target.value)}
                 className="w-full bg-gray-800 border border-gray-700 text-white rounded-lg px-4 py-3 focus:outline-none focus:border-indigo-500"
-                placeholder="din@email.dk"
+                placeholder={tx.emailPlaceholder}
               />
             </div>
             <div>
-              <label className="text-sm text-gray-400 mb-1 block">Adgangskode</label>
+              <label className="text-sm text-gray-400 mb-1 block">{tx.kodeLabel}</label>
               <input
                 type="password" required minLength={8} value={password}
                 onChange={e => setPassword(e.target.value)}
                 className="w-full bg-gray-800 border border-gray-700 text-white rounded-lg px-4 py-3 focus:outline-none focus:border-indigo-500"
-                placeholder="Mindst 8 tegn"
+                placeholder={tx.kodePlaceholder}
               />
             </div>
             <button
               type="submit" disabled={loading}
               className="bg-indigo-600 hover:bg-indigo-500 disabled:bg-gray-700 text-white font-semibold py-3 rounded-lg transition-colors mt-2"
             >
-              {loading ? 'Opretter konto...' : 'Fortsæt'}
+              {loading ? tx.knapOpretterKonto : tx.knapFortsaet}
             </button>
           </form>
         )}
@@ -162,32 +174,28 @@ export default function TilmeldPage() {
         {trin === 'profil' && (
           <form onSubmit={gemProfil} className="flex flex-col gap-4">
             <div>
-              <label className="text-sm text-gray-400 mb-1 block">Dit navn (vises på leaderboard)</label>
+              <label className="text-sm text-gray-400 mb-1 block">{tx.navnLabel}</label>
               <input
                 type="text" required value={displayName}
                 onChange={e => setDisplayName(e.target.value)}
                 className="w-full bg-gray-800 border border-gray-700 text-white rounded-lg px-4 py-3 focus:outline-none focus:border-indigo-500"
-                placeholder="fx Thomas Hansen"
+                placeholder={tx.navnPlaceholder}
               />
             </div>
             <div>
-              <label className="text-sm text-gray-400 mb-1 block">Sleeper-brugernavn</label>
+              <label className="text-sm text-gray-400 mb-1 block">{tx.sleeperLabel}</label>
               <input
                 type="text" required value={sleeperUsername}
                 onChange={e => setSleeperUsername(e.target.value)}
                 className="w-full bg-gray-800 border border-gray-700 text-white rounded-lg px-4 py-3 focus:outline-none focus:border-indigo-500"
-                placeholder="dit sleeper-brugernavn"
+                placeholder={tx.sleeperPlaceholder}
               />
-              <p className="text-gray-600 text-xs mt-1">Find det i Sleeper-appen under din profil</p>
+              <p className="text-gray-600 text-xs mt-1">{tx.sleeperHint}</p>
             </div>
             <div>
-              <label className="text-sm text-gray-400 mb-2 block">Hvilke rækker vil du gerne med i?</label>
+              <label className="text-sm text-gray-400 mb-2 block">{tx.raekkerLabel}</label>
               <div className="flex flex-col gap-2">
-                {[
-                  { id: 'bestball', label: 'Bestball', desc: 'Automatiske startere — sat-og-glem' },
-                  { id: 'managed', label: 'Managed', desc: 'Klassisk fantasy — sæt dit hold hver uge' },
-                  { id: 'chopped', label: 'Chopped', desc: 'Guillotine-format — én ryger ud om ugen' },
-                ].map(({ id, label, desc }) => (
+                {tx.raekker.map(({ id, label, desc }) => (
                   <label key={id}
                     className={`flex items-start gap-3 p-3 rounded-lg border cursor-pointer transition-colors
                       ${valgteRækker.includes(id)
@@ -206,11 +214,35 @@ export default function TilmeldPage() {
                 ))}
               </div>
             </div>
+            <div>
+              <label className="text-sm text-gray-400 mb-2 block">{tx.privatlivLabel}</label>
+              <div className="flex flex-col gap-2">
+                {tx.privatliv.map(({ id, label, desc }) => {
+                  const state = privatlivState[id]
+                  return (
+                    <label key={id}
+                      className={`flex items-start gap-3 p-3 rounded-lg border cursor-pointer transition-colors
+                        ${state.checked ? 'border-indigo-500 bg-indigo-500/10' : 'border-gray-700 hover:border-gray-600'}`}>
+                      <input
+                        type="checkbox" checked={state.checked}
+                        onChange={e => state.set(e.target.checked)}
+                        className="mt-0.5 accent-indigo-500"
+                      />
+                      <div>
+                        <p className="text-white text-sm font-medium">{label}</p>
+                        <p className="text-gray-500 text-xs">{desc}</p>
+                      </div>
+                    </label>
+                  )
+                })}
+              </div>
+            </div>
+
             <button
               type="submit" disabled={loading || valgteRækker.length === 0}
               className="bg-indigo-600 hover:bg-indigo-500 disabled:bg-gray-700 text-white font-semibold py-3 rounded-lg transition-colors mt-2"
             >
-              {loading ? 'Gemmer...' : 'Tilmeld mig'}
+              {loading ? tx.knapGemmer : tx.knapTilmeld}
             </button>
           </form>
         )}

@@ -97,8 +97,8 @@ function LigaKort({ data }: { data: SæsonData }) {
       {/* Header */}
       <div className="flex flex-wrap items-start justify-between gap-4 mb-6">
         <div className="flex items-center gap-3">
-          <span className={`px-3 py-1 rounded-full text-sm font-medium ${TYPEBADGE[data.type]}`}>
-            {TYPELABEL[data.type]}
+          <span className={`px-3 py-1 rounded-full text-sm font-medium ${TYPEBADGE[data.leagueType]}`}>
+            {TYPELABEL[data.leagueType]}
           </span>
           <span className="text-gray-400 font-medium">{data.ligaNavn}</span>
         </div>

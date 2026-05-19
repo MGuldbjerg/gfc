@@ -1,17 +1,16 @@
-// Test-endpoint: verificér at Sleeper API virker
-// Besøg /api/sleeper/test i browseren
+// Sleeper API smoke-test endpoint. Visit /api/sleeper/test in the browser.
 
 import { NextResponse } from 'next/server'
-import { getLeague, getRosters, getUsers } from '@/lib/sleeper'
+import { fetchLeague, fetchRosters, fetchUsers } from '@/lib/sleeper'
 
-// BB1 fra 2026 som testliga
+// 2025 BB1 — a known-good public league.
 const TEST_LEAGUE_ID = '1256384368658632704'
 
 export async function GET() {
   const [league, rosters, users] = await Promise.all([
-    getLeague(TEST_LEAGUE_ID),
-    getRosters(TEST_LEAGUE_ID),
-    getUsers(TEST_LEAGUE_ID),
+    fetchLeague(TEST_LEAGUE_ID),
+    fetchRosters(TEST_LEAGUE_ID),
+    fetchUsers(TEST_LEAGUE_ID),
   ])
 
   if (!league) {
@@ -28,6 +27,6 @@ export async function GET() {
       holdantal: league.total_rosters,
     },
     rosters: rosters?.length ?? 0,
-    brugere: users?.map(u => u.display_name) ?? [],
+    brugere: Object.values(users ?? {}).map(u => u.display_name),
   })
 }

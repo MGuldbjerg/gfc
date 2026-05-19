@@ -17,7 +17,7 @@ export interface UgeScore {
 export interface SæsonData {
   sæson: string
   ligaNavn: string
-  type: GFCLeague['type']
+  leagueType: GFCLeague['leagueType']
   totalPoint: number
   wins?: number
   losses?: number
@@ -92,13 +92,13 @@ async function hentLigaData(
   )
 
   // Beregn rangplacering i ligaen (sorteret efter point for bestball, wins+point for managed)
-  const rangPlacering = beregnRang(rosters, roster.roster_id, liga.type)
+  const rangPlacering = beregnRang(rosters, roster.roster_id, liga.leagueType)
 
   return {
     sæson: liga.season,
     ligaNavn: liga.name,
-    type: liga.type,
-    totalPoint: liga.type === 'bestball' ? totalPoint : (
+    leagueType: liga.leagueType,
+    totalPoint: liga.leagueType === 'bestball' ? totalPoint : (
       (roster.settings.fpts ?? 0) + (roster.settings.fpts_decimal ?? 0) / 100
     ),
     wins: roster.settings.wins,
@@ -114,7 +114,7 @@ async function hentLigaData(
 function beregnRang(
   rosters: Awaited<ReturnType<typeof getRosters>>,
   rosterIdSelf: number,
-  type: GFCLeague['type']
+  type: GFCLeague['leagueType']
 ): number | null {
   if (!rosters) return null
 

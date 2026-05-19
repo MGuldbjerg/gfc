@@ -1,8 +1,40 @@
-// PATCH — opdater privatlivspræferencer for logget bruger
+// GET — fetch the current user's privacy preferences.
+// PATCH — update them and sync the newsletter subscription with Brevo.
 
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase-server'
+import { execute, queryOne } from '@/lib/turso'
 import { tilføjTilNyhedsbrevsliste, fjernFraNyhedsbrevsliste } from '@/lib/brevo'
+
+type PræferenceRow = {
+  vis_sleeper_username: number
+  vis_badges: number
+  nyhedsbrev: number
+}
+
+export async function GET() {
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+
+  if (!user) {
+    return NextResponse.json({ error: 'Ikke logget ind' }, { status: 401 })
+  }
+
+  const row = await queryOne<PræferenceRow>(
+    'SELECT vis_sleeper_username, vis_badges, nyhedsbrev FROM profiles WHERE id = ?',
+    [user.id]
+  )
+
+  if (!row) {
+    return NextResponse.json({ error: 'Profil ikke fundet' }, { status: 404 })
+  }
+
+  return NextResponse.json({
+    visSleeper: row.vis_sleeper_username === 1,
+    visBadges: row.vis_badges === 1,
+    nyhedsbrev: row.nyhedsbrev === 1,
+  })
+}
 
 export async function PATCH(req: NextRequest) {
   const { visSleeper, visBadges, nyhedsbrev } = await req.json()
@@ -14,35 +46,37 @@ export async function PATCH(req: NextRequest) {
     return NextResponse.json({ error: 'Ikke logget ind' }, { status: 401 })
   }
 
-  // Hent nuværende nyhedsbrev-status for at vide om den ændres
-  const { data: nuværende } = await supabase
-    .from('profiles')
-    .select('nyhedsbrev')
-    .eq('id', user.id)
-    .single()
+  const nuværende = await queryOne<{ nyhedsbrev: number }>(
+    'SELECT nyhedsbrev FROM profiles WHERE id = ?',
+    [user.id]
+  )
 
-  const { error } = await supabase
-    .from('profiles')
-    .update({
-      vis_sleeper_username: visSleeper ?? true,
-      vis_badges: visBadges ?? true,
-      nyhedsbrev: nyhedsbrev ?? true,
-      updated_at: new Date().toISOString(),
-    })
-    .eq('id', user.id)
-
-  if (error) {
+  try {
+    await execute(
+      `UPDATE profiles
+         SET vis_sleeper_username = ?,
+             vis_badges = ?,
+             nyhedsbrev = ?,
+             updated_at = datetime('now')
+       WHERE id = ?`,
+      [
+        visSleeper === false ? 0 : 1,
+        visBadges === false ? 0 : 1,
+        nyhedsbrev ? 1 : 0,
+        user.id,
+      ]
+    )
+  } catch (err) {
+    console.error('Update preferences failed:', err)
     return NextResponse.json({ error: 'Kunne ikke gemme indstillinger' }, { status: 500 })
   }
 
-  // Synk med Brevo-liste hvis nyhedsbrev-status ændres
-  if (user.email && nuværende && nuværende.nyhedsbrev !== nyhedsbrev) {
+  // Sync newsletter list with Brevo if subscription state changed.
+  const previous = nuværende?.nyhedsbrev === 1
+  if (user.email && previous !== !!nyhedsbrev) {
     const email = user.email
-    if (nyhedsbrev) {
-      tilføjTilNyhedsbrevsliste({ email }).catch(err => console.error('Brevo-fejl:', err))
-    } else {
-      fjernFraNyhedsbrevsliste({ email }).catch(err => console.error('Brevo-fejl:', err))
-    }
+    const action = nyhedsbrev ? tilføjTilNyhedsbrevsliste({ email }) : fjernFraNyhedsbrevsliste({ email })
+    action.catch(err => console.error('Brevo-fejl:', err))
   }
 
   return NextResponse.json({ ok: true })
