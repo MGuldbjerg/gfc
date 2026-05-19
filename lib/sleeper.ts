@@ -80,10 +80,17 @@ export async function fetchMatchups(leagueId: string, week: number): Promise<Sle
   return res.json()
 }
 
-export async function fetchDraft(leagueId: string) {
-  const res = await fetch(`${SLEEPER_BASE_URL}/league/${leagueId}/draft`)
+// Sleeper returns an array of drafts (most leagues have one, but the endpoint
+// is plural). We surface the most recently created one for compatibility with
+// callers that expect a single draft object.
+export async function fetchDraft(leagueId: string): Promise<{ draft_id: string } | null> {
+  const res = await fetch(`${SLEEPER_BASE_URL}/league/${leagueId}/drafts`)
   if (!res.ok) throw new Error(`Sleeper API error: ${res.status}`)
-  return res.json()
+  const drafts = await res.json()
+  if (!Array.isArray(drafts) || drafts.length === 0) return null
+  // Sort by `created` desc (epoch ms), then pick the first.
+  drafts.sort((a, b) => (b?.created ?? 0) - (a?.created ?? 0))
+  return drafts[0]
 }
 
 export async function fetchDraftPicks(draftId: string) {
