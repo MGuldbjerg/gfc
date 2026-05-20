@@ -6,6 +6,7 @@ import { CURRENT_SEASON } from '@/lib/leagues'
 const links = [
   { href: '/leaderboard', label: tekst.nav.leaderboard },
   { href: '/historie', label: tekst.nav.historie },
+  { href: '/om-gfc', label: 'Om GFC' },
   { href: '/draft-statistik', label: tekst.nav.draftstatistik },
   { href: '/regler', label: tekst.nav.regler },
   { href: '/sponsorer', label: tekst.nav.sponsorer },
