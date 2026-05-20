@@ -3,7 +3,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@/auth'
 import { query } from '@/lib/turso'
-import { beregnFordeling, type Deltager, type LeagueType } from '@/lib/fordeling'
+import { beregnFordeling, type Deltager, type LeagueType, type Pin } from '@/lib/fordeling'
 import { CURRENT_SEASON } from '@/lib/leagues'
 
 const VALID_TYPES: LeagueType[] = ['bestball', 'managed', 'chopped']
@@ -22,7 +22,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Ikke autoriseret' }, { status: 401 })
   }
 
-  const { ligaStørrelse = 12 } = await req.json().catch(() => ({}))
+  const { ligaStørrelse = 12, pins = [] } = await req.json().catch(() => ({}))
 
   const tilmeldinger = await query<TilmeldingRow>(
     `SELECT r.id AS registration_id,
@@ -48,7 +48,15 @@ export async function POST(req: NextRequest) {
     preferredTypes: parsePreferredTypes(t.preferred_types),
   }))
 
-  const resultat = beregnFordeling(deltagere, ligaStørrelse)
+  const validPins: Pin[] = Array.isArray(pins)
+    ? pins.filter((p: unknown): p is Pin =>
+        typeof p === 'object' && p !== null &&
+        typeof (p as Pin).profileId === 'string' &&
+        typeof (p as Pin).ligaNavn === 'string'
+      )
+    : []
+
+  const resultat = beregnFordeling(deltagere, ligaStørrelse, validPins)
   return NextResponse.json(resultat)
 }
 

@@ -29,74 +29,59 @@ export default async function HistoriePage({
   const valgtSæson = sæsoner.includes(rawSaeson ?? '') ? rawSaeson! : sæsoner[0]
 
   return (
-    <main className="min-h-screen bg-gray-950 text-white p-4 md:p-8">
-      <div className="max-w-6xl mx-auto">
-        <div className="mb-8">
-          <h1 className="text-4xl font-bold mb-2">📚 Historie</h1>
-          <p className="text-gray-400">
-            Tidligere sæsoner og all-time rekorder fra Guldbjergs Fantasy Challenge.
-          </p>
+    <div className="gfc-app">
+      <div className="container">
+        <div className="page-head">
+          <div className="kicker-strip">
+            <span className="dash" />
+            <span className="eyebrow">Resultater</span>
+          </div>
+          <h1>Historie</h1>
+          <p className="sub">Tidligere sæsoner og all-time rekorder fra Guldbjergs Fantasy Challenge.</p>
         </div>
 
-        <VisningTabs aktiv={visning} sæson={valgtSæson} />
+        {/* Tabs */}
+        <div className="tabs">
+          <Link
+            href={valgtSæson ? `/historie?visning=sæson&saeson=${valgtSæson}` : '/historie'}
+            className={`tab${visning === 'sæson' ? ' active' : ''}`}
+          >
+            Sæson
+          </Link>
+          <Link
+            href="/historie?visning=alltime"
+            className={`tab${visning === 'alltime' ? ' active' : ''}`}
+          >
+            All-time
+          </Link>
+        </div>
 
-        {visning === 'sæson' ? (
-          sæsoner.length === 0 ? (
-            <IngenDataKort />
+        <div style={{ marginTop: 48 }}>
+          {visning === 'sæson' ? (
+            sæsoner.length === 0 ? (
+              <IngenData />
+            ) : (
+              <SæsonView sæsoner={sæsoner} valgtSæson={valgtSæson} />
+            )
           ) : (
-            <SæsonView sæsoner={sæsoner} valgtSæson={valgtSæson} />
-          )
-        ) : (
-          <AllTimeView />
-        )}
+            <AllTimeView />
+          )}
+        </div>
       </div>
-    </main>
-  )
-}
-
-function VisningTabs({ aktiv, sæson }: { aktiv: Visning; sæson: string | undefined }) {
-  return (
-    <div className="flex items-center gap-2 mb-8 border-b border-gray-800">
-      <Tab
-        href={sæson ? `/historie?visning=sæson&saeson=${sæson}` : '/historie'}
-        aktiv={aktiv === 'sæson'}
-      >
-        Sæson
-      </Tab>
-      <Tab href="/historie?visning=alltime" aktiv={aktiv === 'alltime'}>
-        All-time
-      </Tab>
     </div>
   )
 }
 
-function Tab({
-  href,
-  aktiv,
-  children,
-}: {
-  href: string
-  aktiv: boolean
-  children: React.ReactNode
-}) {
+function IngenData() {
   return (
-    <Link
-      href={href}
-      className={`px-4 py-3 text-sm font-medium transition-colors -mb-px border-b-2
-        ${aktiv
-          ? 'text-white border-indigo-500'
-          : 'text-gray-500 hover:text-gray-300 border-transparent'}`}
-    >
-      {children}
-    </Link>
-  )
-}
-
-function IngenDataKort() {
-  return (
-    <div className="bg-gray-900 border border-gray-800 rounded-2xl p-10 text-center">
-      <p className="text-3xl mb-3">📭</p>
-      <p className="text-gray-400">Ingen afsluttede sæsoner endnu. Tjek tilbage efter sæsonen.</p>
+    <div style={{
+      padding: '64px 32px',
+      textAlign: 'center',
+      background: 'var(--panel)',
+      border: '1px solid var(--line)',
+      borderRadius: 'var(--r)',
+    }}>
+      <p className="eyebrow">Ingen afsluttede sæsoner endnu. Tjek tilbage efter sæsonen.</p>
     </div>
   )
 }
@@ -122,176 +107,150 @@ async function SæsonView({
 
   return (
     <div>
-      <div className="flex flex-wrap items-center gap-2 mb-6">
-        <span className="text-sm text-gray-500 mr-2">Sæson:</span>
+      {/* Season picker */}
+      <div className="season-pills">
+        <span className="lbl">Sæson</span>
         {sæsoner.map(s => (
           <Link
             key={s}
             href={`/historie?visning=sæson&saeson=${s}`}
-            className={`px-3 py-1.5 rounded-md text-sm font-medium transition-colors
-              ${s === valgtSæson
-                ? 'bg-indigo-600 text-white'
-                : 'bg-gray-800 text-gray-300 hover:bg-gray-700'}`}
+            className={`season-pill${s === valgtSæson ? ' active' : ''}`}
           >
             {s}
           </Link>
         ))}
       </div>
 
-      <SæsonsVindere
-        bb={bbVinder}
-        m={mVinder}
-        c={cVinder}
-      />
+      {/* Winners */}
+      {(bbVinder || mVinder || cVinder) && (
+        <>
+          <div className="lb-section-head">
+            Sæsonvindere
+            <span className="dash" />
+          </div>
+          <div className="winners">
+            {bbVinder && <VinderKort type="Bestball" ix="01" vinder={bbVinder} />}
+            {mVinder && <VinderKort type="Managed" ix="02" vinder={mVinder} />}
+            {cVinder && <VinderKort type="Chopped" ix="03" vinder={cVinder} />}
+          </div>
+        </>
+      )}
 
-      <UgeRekorder bb={bbRekord} m={mRekord} c={cRekord} />
+      {/* Week records */}
+      {(bbRekord || mRekord || cRekord) && (
+        <>
+          <div className="lb-section-head" style={{ marginTop: 40 }}>
+            Højeste enkeltscore i grundspillet
+            <span className="dash" />
+          </div>
+          <div className="records">
+            {bbRekord && <RekordKort type="Bestball" ix="01" rekord={bbRekord} />}
+            {mRekord && <RekordKort type="Managed" ix="02" rekord={mRekord} />}
+            {cRekord && <RekordKort type="Chopped" ix="03" rekord={cRekord} />}
+          </div>
+        </>
+      )}
 
-      <div className={`grid grid-cols-1 gap-6 mt-8 ${oversigt.chopped.entries.length > 0 ? 'xl:grid-cols-3' : 'xl:grid-cols-2'}`}>
-        <SæsonTabel titel="🎯 Bestball" entries={oversigt.bestball.entries} />
-        <SæsonTabel titel="⚙️ Managed" entries={oversigt.managed.entries} visWins />
+      {/* Full standings */}
+      <div className="lb-section-head" style={{ marginTop: 56 }}>
+        Slutstillinger
+        <span className="dash" />
+      </div>
+      <div
+        className="lb-grid"
+        style={oversigt.chopped.entries.length === 0 ? { gridTemplateColumns: '1fr 1fr' } : undefined}
+      >
+        <SæsonKolonne titel="Bestball" ix="01" entries={oversigt.bestball.entries} />
+        <SæsonKolonne titel="Managed" ix="02" entries={oversigt.managed.entries} visWins />
         {oversigt.chopped.entries.length > 0 && (
-          <SæsonTabel titel="🔪 Chopped" entries={oversigt.chopped.entries} />
+          <SæsonKolonne titel="Chopped" ix="03" entries={oversigt.chopped.entries} />
         )}
       </div>
     </div>
   )
 }
 
-function SæsonsVindere({
-  bb,
-  m,
-  c,
-}: {
-  bb: SæsonVinder | null
-  m: SæsonVinder | null
-  c: SæsonVinder | null
-}) {
-  if (!bb && !m && !c) return null
+function VinderKort({ type, ix, vinder }: { type: string; ix: string; vinder: SæsonVinder }) {
   return (
-    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-      {bb && <VinderKort emoji="🎯" type="Bestball" vinder={bb} />}
-      {m && <VinderKort emoji="⚙️" type="Managed" vinder={m} />}
-      {c && <VinderKort emoji="🔪" type="Chopped" vinder={c} />}
+    <div className="winner">
+      <div className="winner-eyebrow">
+        <span className="eyebrow">{ix}</span>
+        <span className="eyebrow">{type} — Sæsonvinder</span>
+      </div>
+      <div className="name">{vinder.displayName}</div>
+      <div className="pts"><em>{vinder.points.toFixed(1)}</em> point</div>
+      {vinder.beskrivelse && <div className="blurb">{vinder.beskrivelse}</div>}
     </div>
   )
 }
 
-function VinderKort({
-  emoji,
-  type,
-  vinder,
-}: {
-  emoji: string
-  type: string
-  vinder: SæsonVinder
-}) {
+function RekordKort({ type, ix, rekord }: { type: string; ix: string; rekord: UgeRekord }) {
   return (
-    <div className="bg-gradient-to-br from-yellow-900/40 to-yellow-800/20 border border-yellow-700/40 rounded-xl p-5">
-      <div className="text-yellow-400 text-xs font-semibold uppercase tracking-wider">
-        {emoji} {type} — Sæsonvinder
+    <div className="record">
+      <div className="winner-eyebrow">
+        <span className="eyebrow">{ix}</span>
+        <span className="eyebrow">{type}</span>
       </div>
-      <div className="text-2xl font-bold text-white mt-2">{vinder.displayName}</div>
-      <div className="text-gray-400 text-sm mt-1">
-        {vinder.points.toFixed(1)} point
-      </div>
-      <div className="text-gray-500 text-xs mt-2">{vinder.beskrivelse}</div>
-    </div>
-  )
-}
-
-function UgeRekorder({
-  bb,
-  m,
-  c,
-}: {
-  bb: UgeRekord | null
-  m: UgeRekord | null
-  c: UgeRekord | null
-}) {
-  if (!bb && !m && !c) return null
-  return (
-    <div className="mt-6">
-      <h3 className="text-sm font-semibold text-gray-400 uppercase tracking-wider mb-3">
-        ⚡ Højeste enkeltscore i grundspillet
-      </h3>
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-        {bb && <UgeRekordKort emoji="🎯" type="Bestball" rekord={bb} />}
-        {m && <UgeRekordKort emoji="⚙️" type="Managed" rekord={m} />}
-        {c && <UgeRekordKort emoji="🔪" type="Chopped" rekord={c} />}
+      <div className="name">{rekord.displayName}</div>
+      <div className="rec-meta">
+        <span className="rec-pts">{rekord.points.toFixed(1)} point</span>
+        {' · '}Uge {rekord.week} · {rekord.leagueName}
       </div>
     </div>
   )
 }
 
-function UgeRekordKort({
-  emoji,
-  type,
-  rekord,
-}: {
-  emoji: string
-  type: string
-  rekord: UgeRekord
-}) {
-  return (
-    <div className="bg-gradient-to-br from-indigo-900/30 to-indigo-800/10 border border-indigo-700/30 rounded-xl p-5">
-      <div className="text-indigo-400 text-xs font-semibold uppercase tracking-wider">
-        {emoji} {type}
-      </div>
-      <div className="text-xl font-bold text-white mt-2">{rekord.displayName}</div>
-      <div className="text-gray-400 text-sm mt-1">
-        {rekord.points.toFixed(1)} point · Uge {rekord.week} · {rekord.leagueName}
-      </div>
-    </div>
-  )
-}
-
-function SæsonTabel({
+function SæsonKolonne({
   titel,
+  ix,
   entries,
   visWins,
 }: {
   titel: string
-  emoji?: string
+  ix: string
   entries: LeaderboardEntry[]
   visWins?: boolean
 }) {
   return (
-    <section>
-      <h2 className="text-xl font-semibold mb-3">{titel}</h2>
+    <div className="lb-col">
+      <div className="lb-col-head">
+        <span className="lb-col-name">
+          <span className="lb-ix">{ix}</span>
+          {titel}
+        </span>
+      </div>
       {entries.length === 0 ? (
-        <p className="text-gray-600 text-sm">Ingen data</p>
+        <p className="eyebrow" style={{ padding: '16px 0' }}>Ingen data</p>
       ) : (
-        <div className="bg-gray-900 rounded-xl overflow-hidden">
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="text-gray-500 text-xs border-b border-gray-800">
-                <th className="text-center px-3 py-2 w-10">#</th>
-                <th className="text-left px-3 py-2">Hold</th>
-                {visWins && <th className="text-center px-3 py-2">W</th>}
-                <th className="text-right px-3 py-2">Point</th>
-              </tr>
-            </thead>
-            <tbody>
-              {entries.slice(0, 25).map(entry => (
-                <tr
-                  key={`${entry.leagueType}-${entry.username}`}
-                  className="border-b border-gray-800/50 hover:bg-gray-800/30"
-                >
-                  <td className="px-3 py-2 text-center text-gray-500">{entry.rank}</td>
-                  <td className="px-3 py-2 font-medium">{entry.displayName}</td>
-                  {visWins && (
-                    <td className="px-3 py-2 text-center text-gray-400">{entry.wins ?? 0}</td>
-                  )}
-                  <td className="px-3 py-2 text-right font-mono text-green-400">
-                    {entry.totalPoints.toFixed(1)}
+        <table className="tbl">
+          <thead>
+            <tr>
+              <th className="c">#</th>
+              <th>Hold</th>
+              {visWins && <th className="c">W</th>}
+              <th className="r">Point</th>
+            </tr>
+          </thead>
+          <tbody>
+            {entries.slice(0, 25).map(entry => {
+              const rank = entry.rank
+              const rc = rank === 1 ? 'gold' : rank === 2 ? 'silver' : rank === 3 ? 'bronze' : ''
+              return (
+                <tr key={`${entry.leagueType}-${entry.username}`}>
+                  <td className={`rank ${rc}`}>
+                    {rc && <span className="rmark" aria-hidden />}
+                    {rc ? '' : rank}
                   </td>
+                  <td className="name">{entry.displayName}</td>
+                  {visWins && <td className="c">{entry.wins ?? 0}</td>}
+                  <td className="pts">{entry.totalPoints.toFixed(1)}</td>
                 </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+              )
+            })}
+          </tbody>
+        </table>
       )}
-    </section>
+    </div>
   )
 }
 
@@ -299,7 +258,7 @@ function SæsonTabel({
 
 async function AllTimeView() {
   const sæsoner = listAfsluttedeSæsoner()
-  if (sæsoner.length === 0) return <IngenDataKort />
+  if (sæsoner.length === 0) return <IngenData />
 
   const [bestball, managed, chopped, rekorder] = await Promise.all([
     hentAllTimeOversigt('bestball'),
@@ -309,154 +268,146 @@ async function AllTimeView() {
   ])
 
   const harChopped = chopped.entries.length > 0
-  const bedsteSæsoner = rekorder
-    .sort((a, b) => b.points - a.points)
-    .slice(0, 10)
-
-  const flesteSæsoner = mergeForAppearances([bestball.entries, managed.entries, chopped.entries])
-    .slice(0, 10)
+  const bedsteSæsoner = rekorder.sort((a, b) => b.points - a.points).slice(0, 10)
+  const flesteSæsoner = mergeForAppearances([bestball.entries, managed.entries, chopped.entries]).slice(0, 10)
 
   return (
-    <div className="flex flex-col gap-10">
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 64 }}>
+      {/* All-time standings */}
       <section>
-        <h2 className="text-2xl font-semibold mb-4">All-time leaderboards</h2>
-        <p className="text-gray-500 text-sm mb-6">
-          Aggregeret på tværs af {sæsoner.length} afsluttede sæsoner: {sæsoner.join(', ')}.
+        <div className="lb-section-head">
+          All-time leaderboards
+          <span className="dash" />
+        </div>
+        <p className="eyebrow" style={{ marginBottom: 24 }}>
+          Aggregeret på tværs af {sæsoner.length} afsluttede sæsoner: {sæsoner.join(', ')}
         </p>
-
-        <div className={`grid grid-cols-1 gap-6 ${harChopped ? 'xl:grid-cols-3' : 'xl:grid-cols-2'}`}>
-          <AllTimeTabel titel="🎯 Bestball" entries={bestball.entries} />
-          <AllTimeTabel titel="⚙️ Managed" entries={managed.entries} visWins />
-          {harChopped && <AllTimeTabel titel="🔪 Chopped" entries={chopped.entries} />}
+        <div
+          className="lb-grid"
+          style={!harChopped ? { gridTemplateColumns: '1fr 1fr' } : undefined}
+        >
+          <AllTimeKolonne titel="Bestball" ix="01" entries={bestball.entries} />
+          <AllTimeKolonne titel="Managed" ix="02" entries={managed.entries} visWins />
+          {harChopped && <AllTimeKolonne titel="Chopped" ix="03" entries={chopped.entries} />}
         </div>
       </section>
 
+      {/* Best single seasons */}
       <section>
-        <h2 className="text-2xl font-semibold mb-4">🏆 Bedste enkelt-sæsoner</h2>
-        <p className="text-gray-500 text-sm mb-4">
-          De højeste single-sæson totaler på tværs af alle rækker og år.
-        </p>
-        <BedsteSæsonerTabel entries={bedsteSæsoner} />
-      </section>
-
-      <section>
-        <h2 className="text-2xl font-semibold mb-4">🏅 Mest aktive deltagere</h2>
-        <p className="text-gray-500 text-sm mb-4">
-          Spillere med flest deltagelser på tværs af rækker.
-        </p>
-        <FlesteSæsonerTabel entries={flesteSæsoner} />
-      </section>
-    </div>
-  )
-}
-
-function AllTimeTabel({
-  titel,
-  entries,
-  visWins,
-}: {
-  titel: string
-  entries: AllTimeEntry[]
-  visWins?: boolean
-}) {
-  return (
-    <div>
-      <h3 className="text-lg font-semibold mb-3">{titel}</h3>
-      {entries.length === 0 ? (
-        <p className="text-gray-600 text-sm">Ingen data</p>
-      ) : (
-        <div className="bg-gray-900 rounded-xl overflow-hidden">
-          <table className="w-full text-sm">
+        <div className="lb-section-head">
+          Bedste enkelt-sæsoner
+          <span className="dash" />
+        </div>
+        <div className="lb-col" style={{ maxWidth: 560 }}>
+          <table className="tbl">
             <thead>
-              <tr className="text-gray-500 text-xs border-b border-gray-800">
-                <th className="text-center px-3 py-2 w-10">#</th>
-                <th className="text-left px-3 py-2">Hold</th>
-                <th className="text-center px-3 py-2">Sæsoner</th>
-                {visWins && <th className="text-center px-3 py-2">W</th>}
-                <th className="text-right px-3 py-2">Snit</th>
-                <th className="text-right px-3 py-2">Total</th>
+              <tr>
+                <th className="c">#</th>
+                <th>Hold</th>
+                <th>Sæson</th>
+                <th>Række</th>
+                <th className="r">Point</th>
               </tr>
             </thead>
             <tbody>
-              {entries.slice(0, 25).map((entry, i) => (
-                <tr key={entry.username} className="border-b border-gray-800/50 hover:bg-gray-800/30">
-                  <td className="px-3 py-2 text-center text-gray-500">{i + 1}</td>
-                  <td className="px-3 py-2 font-medium">{entry.displayName}</td>
-                  <td className="px-3 py-2 text-center text-gray-400">{entry.seasonsPlayed}</td>
-                  {visWins && (
-                    <td className="px-3 py-2 text-center text-gray-400">{entry.totalWins}</td>
-                  )}
-                  <td className="px-3 py-2 text-right font-mono text-gray-300">
-                    {entry.gennemsnitPerSæson.toFixed(1)}
-                  </td>
-                  <td className="px-3 py-2 text-right font-mono text-green-400">
-                    {entry.totalPoints.toFixed(1)}
-                  </td>
+              {bedsteSæsoner.map((r, i) => (
+                <tr key={`${r.username}-${r.season}-${r.type}`}>
+                  <td className="rank c">{i + 1}</td>
+                  <td className="name">{r.displayName}</td>
+                  <td>{r.season}</td>
+                  <td>{TYPE_LABEL[r.type]}</td>
+                  <td className="pts">{r.points.toFixed(1)}</td>
                 </tr>
               ))}
             </tbody>
           </table>
         </div>
+      </section>
+
+      {/* Most appearances */}
+      <section>
+        <div className="lb-section-head">
+          Mest aktive deltagere
+          <span className="dash" />
+        </div>
+        <div className="lb-col" style={{ maxWidth: 400 }}>
+          <table className="tbl">
+            <thead>
+              <tr>
+                <th className="c">#</th>
+                <th>Hold</th>
+                <th className="r">Deltagelser</th>
+              </tr>
+            </thead>
+            <tbody>
+              {flesteSæsoner.map((e, i) => (
+                <tr key={e.username}>
+                  <td className="rank c">{i + 1}</td>
+                  <td className="name">{e.displayName}</td>
+                  <td className="r">{e.appearances}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </section>
+    </div>
+  )
+}
+
+const TYPE_LABEL: Record<SæsonRekord['type'], string> = {
+  bestball: 'Bestball',
+  managed: 'Managed',
+  chopped: 'Chopped',
+}
+
+function AllTimeKolonne({
+  titel,
+  ix,
+  entries,
+  visWins,
+}: {
+  titel: string
+  ix: string
+  entries: AllTimeEntry[]
+  visWins?: boolean
+}) {
+  return (
+    <div className="lb-col">
+      <div className="lb-col-head">
+        <span className="lb-col-name">
+          <span className="lb-ix">{ix}</span>
+          {titel}
+        </span>
+      </div>
+      {entries.length === 0 ? (
+        <p className="eyebrow" style={{ padding: '16px 0' }}>Ingen data</p>
+      ) : (
+        <table className="tbl">
+          <thead>
+            <tr>
+              <th className="c">#</th>
+              <th>Hold</th>
+              <th className="c">Sæsoner</th>
+              {visWins && <th className="c">W</th>}
+              <th className="r">Snit</th>
+              <th className="r">Total</th>
+            </tr>
+          </thead>
+          <tbody>
+            {entries.slice(0, 25).map((entry, i) => (
+              <tr key={entry.username}>
+                <td className="rank c">{i + 1}</td>
+                <td className="name">{entry.displayName}</td>
+                <td className="c">{entry.seasonsPlayed}</td>
+                {visWins && <td className="c">{entry.totalWins}</td>}
+                <td className="r">{entry.gennemsnitPerSæson.toFixed(1)}</td>
+                <td className="pts">{entry.totalPoints.toFixed(1)}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
       )}
-    </div>
-  )
-}
-
-function BedsteSæsonerTabel({ entries }: { entries: SæsonRekord[] }) {
-  const typeLabel: Record<SæsonRekord['type'], string> = {
-    bestball: 'Bestball',
-    managed: 'Managed',
-    chopped: 'Chopped',
-  }
-  return (
-    <div className="bg-gray-900 rounded-xl overflow-hidden">
-      <table className="w-full text-sm">
-        <thead>
-          <tr className="text-gray-500 text-xs border-b border-gray-800">
-            <th className="text-center px-3 py-2 w-10">#</th>
-            <th className="text-left px-3 py-2">Hold</th>
-            <th className="text-left px-3 py-2">Sæson</th>
-            <th className="text-left px-3 py-2">Række</th>
-            <th className="text-right px-3 py-2">Point</th>
-          </tr>
-        </thead>
-        <tbody>
-          {entries.map((r, i) => (
-            <tr key={`${r.username}-${r.season}-${r.type}`} className="border-b border-gray-800/50 hover:bg-gray-800/30">
-              <td className="px-3 py-2 text-center text-gray-500">{i + 1}</td>
-              <td className="px-3 py-2 font-medium">{r.displayName}</td>
-              <td className="px-3 py-2 text-gray-400">{r.season}</td>
-              <td className="px-3 py-2 text-gray-400">{typeLabel[r.type]}</td>
-              <td className="px-3 py-2 text-right font-mono text-green-400">{r.points.toFixed(1)}</td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
-    </div>
-  )
-}
-
-function FlesteSæsonerTabel({ entries }: { entries: AppearanceEntry[] }) {
-  return (
-    <div className="bg-gray-900 rounded-xl overflow-hidden">
-      <table className="w-full text-sm">
-        <thead>
-          <tr className="text-gray-500 text-xs border-b border-gray-800">
-            <th className="text-center px-3 py-2 w-10">#</th>
-            <th className="text-left px-3 py-2">Hold</th>
-            <th className="text-right px-3 py-2">Deltagelser</th>
-          </tr>
-        </thead>
-        <tbody>
-          {entries.map((e, i) => (
-            <tr key={e.username} className="border-b border-gray-800/50 hover:bg-gray-800/30">
-              <td className="px-3 py-2 text-center text-gray-500">{i + 1}</td>
-              <td className="px-3 py-2 font-medium">{e.displayName}</td>
-              <td className="px-3 py-2 text-right font-mono text-gray-300">{e.appearances}</td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
     </div>
   )
 }
@@ -467,11 +418,7 @@ function mergeForAppearances(allLists: AllTimeEntry[][]): AppearanceEntry[] {
   const map = new Map<string, AppearanceEntry>()
   for (const list of allLists) {
     for (const e of list) {
-      const eks = map.get(e.username) ?? {
-        username: e.username,
-        displayName: e.displayName,
-        appearances: 0,
-      }
+      const eks = map.get(e.username) ?? { username: e.username, displayName: e.displayName, appearances: 0 }
       eks.appearances += e.seasonsPlayed
       map.set(e.username, eks)
     }

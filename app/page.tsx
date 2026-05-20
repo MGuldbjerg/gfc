@@ -1,90 +1,165 @@
 import Link from 'next/link'
 import { tekst, t } from '@/content/tekst'
+import { CURRENT_SEASON } from '@/lib/leagues'
+
+const TRACKS = [
+  {
+    ix: '01',
+    name: 'Bestball',
+    corner: 'sat-og-glem',
+    desc: 'Automatiske startere — draft et hold og lad systemet vælge dine bedste spillere hver uge. Ingen lineups at håndtere.',
+    tags: ['automatisk', 'draft', 'total point'],
+  },
+  {
+    ix: '02',
+    name: 'Managed',
+    corner: 'klassisk',
+    desc: 'Klassisk fantasy. Sæt dit hold manuelt hver uge, lav byttehandler og match dig mod resten af ligaen.',
+    tags: ['manuelt', 'byttehandler', 'head-to-head'],
+  },
+  {
+    ix: '03',
+    name: 'Chopped',
+    corner: 'guillotine',
+    desc: 'Lavest scorende hold ryger ud hver uge. Én liga, én vinder — sæsonens skarpeste tilbageværende.',
+    tags: ['elimination', 'ugentlig', 'survivor'],
+  },
+]
 
 export default function HomePage() {
   return (
-    <main className="bg-gray-950 text-white">
-      <section className="relative overflow-hidden">
-        <div className="absolute inset-0 bg-gradient-to-br from-indigo-950/40 via-gray-950 to-gray-950 pointer-events-none" />
-        <div className="relative max-w-5xl mx-auto px-6 pt-16 pb-20 sm:pt-24 sm:pb-28 text-center">
-          <p className="text-sm uppercase tracking-[0.3em] text-indigo-400 mb-4">
-            {t(tekst.landing.kicker)}
-          </p>
-          <h1 className="text-4xl sm:text-6xl font-bold leading-tight tracking-tight">
-            {tekst.landing.titel}
-          </h1>
-          <p className="mt-6 text-lg text-gray-300 max-w-2xl mx-auto leading-relaxed">
-            {tekst.landing.intro}
-          </p>
+    <div className="gfc-app">
+      {/* Hero */}
+      <section className="hero">
+        <div className="container">
+          <div className="hero-inner">
+            <div className="hero-top">
+              <div className="kicker-strip">
+                <span className="dash" />
+                <span className="eyebrow">Guldbjergs Fantasy Challenge — {CURRENT_SEASON}</span>
+              </div>
+              <div className="hero-meta">
+                <span className="hero-meta-item">NFL 2026</span>
+                <span className="hero-meta-item">3 rækker</span>
+                <span className="hero-meta-item">Slow draft</span>
+              </div>
+            </div>
 
-          <div className="mt-10 flex flex-col sm:flex-row gap-3 justify-center items-center">
-            <Link
-              href="/log-ind"
-              className="bg-indigo-600 hover:bg-indigo-500 text-white font-semibold px-8 py-4 rounded-full text-base shadow-lg shadow-indigo-900/40 transition-colors"
-            >
-              {t(tekst.landing.primaerCta)}
-            </Link>
-            <Link
-              href="/leaderboard"
-              className="border border-gray-700 hover:border-gray-500 text-white font-medium px-8 py-4 rounded-full text-base transition-colors"
-            >
-              {tekst.landing.sekundaerCta}
-            </Link>
+            <div className="hero-row2">
+              <div>
+                <h1 className="display">
+                  Danmarks<br />
+                  <em>største</em><br />
+                  fantasy<br />
+                  challenge
+                </h1>
+                <div className="hero-cta-group">
+                  <Link href="/log-ind" className="btn">
+                    {t(tekst.landing.primaerCta)}
+                    <span className="arrow" aria-hidden />
+                  </Link>
+                  <Link href="/leaderboard" className="btn ghost">
+                    {tekst.landing.sekundaerCta}
+                  </Link>
+                </div>
+              </div>
+
+              <div className="stat-blocks">
+                {tekst.landing.hojdepunkter.map(h => (
+                  <div key={h.label} className="stat-block">
+                    <div className="stat-num">{h.tal}</div>
+                    <div className="stat-label">{h.label}</div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Tracks */}
+      <section className="section alt">
+        <div className="container">
+          <div className="section-head">
+            <div className="left">
+              <div className="kicker-strip">
+                <span className="dash" />
+                <span className="eyebrow">Tre rækker</span>
+              </div>
+              <h2 className="section-title">{tekst.landing.raekkerTitel}</h2>
+              <p className="lede">{tekst.landing.raekkerUndertitel}</p>
+            </div>
           </div>
 
-          <div className="mt-14 grid grid-cols-3 gap-4 max-w-2xl mx-auto">
-            {tekst.landing.hojdepunkter.map(h => (
-              <div key={h.label}>
-                <p className="text-3xl sm:text-4xl font-bold text-white">{h.tal}</p>
-                <p className="mt-1 text-xs sm:text-sm text-gray-500 uppercase tracking-wider">{h.label}</p>
+          <div className="tracks">
+            {TRACKS.map(track => (
+              <div key={track.ix} className="track">
+                <span className="ix">{track.ix}</span>
+                <span className="corner">{track.corner}</span>
+                <div className="name">{track.name}</div>
+                <p className="desc">{track.desc}</p>
+                <div className="tags">
+                  {track.tags.map(tag => (
+                    <span key={tag} className="tag">{tag}</span>
+                  ))}
+                </div>
               </div>
             ))}
           </div>
         </div>
       </section>
 
-      <section className="max-w-5xl mx-auto px-6 py-16">
-        <h2 className="text-2xl sm:text-3xl font-bold mb-2">{tekst.landing.raekkerTitel}</h2>
-        <p className="text-gray-400 mb-10">{tekst.landing.raekkerUndertitel}</p>
-
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
-          {tekst.landing.raekker.map(r => (
-            <div key={r.navn} className="bg-gray-900/60 border border-gray-800 rounded-2xl p-6">
-              <div className="text-3xl mb-3">{r.emoji}</div>
-              <h3 className="text-xl font-semibold mb-2">{r.navn}</h3>
-              <p className="text-gray-400 text-sm leading-relaxed">{r.beskrivelse}</p>
+      {/* Timeline */}
+      <section className="section">
+        <div className="container">
+          <div className="section-head">
+            <div className="left">
+              <div className="kicker-strip">
+                <span className="dash" />
+                <span className="eyebrow">Sæsonplan</span>
+              </div>
+              <h2 className="section-title">{tekst.landing.tidslinjeTitel}</h2>
             </div>
-          ))}
-        </div>
-      </section>
+          </div>
 
-      <section className="bg-gray-900/40 border-y border-gray-800/60">
-        <div className="max-w-5xl mx-auto px-6 py-16">
-          <h2 className="text-2xl sm:text-3xl font-bold mb-10">{tekst.landing.tidslinjeTitel}</h2>
-          <ol className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
+          <ol className="timeline">
             {tekst.landing.tidslinje.map((trin, i) => (
-              <li key={trin.tid} className="bg-gray-950/70 border border-gray-800 rounded-xl p-5">
-                <div className="text-indigo-400 text-xs font-semibold uppercase tracking-wider">Trin {i + 1}</div>
-                <div className="mt-2 text-white font-semibold">{trin.tid}</div>
-                <div className="mt-1 text-gray-400 text-sm">{trin.hvad}</div>
+              <li key={trin.tid} className="tl-step">
+                <div className="step-no">TRIN {String(i + 1).padStart(2, '0')}</div>
+                <div className="step-when">{trin.tid}</div>
+                <div className="step-what">{trin.hvad}</div>
               </li>
             ))}
           </ol>
         </div>
       </section>
 
-      <section className="max-w-5xl mx-auto px-6 py-16">
-        <div className="bg-gradient-to-br from-indigo-950/60 to-gray-900/60 border border-indigo-900/40 rounded-3xl p-10 sm:p-14 text-center">
-          <h2 className="text-2xl sm:text-3xl font-bold mb-3">{tekst.landing.finalCtaTitel}</h2>
-          <p className="text-gray-300 mb-8 max-w-xl mx-auto">{tekst.landing.finalCtaTekst}</p>
-          <Link
-            href="/log-ind"
-            className="inline-block bg-indigo-600 hover:bg-indigo-500 text-white font-semibold px-8 py-4 rounded-full text-base shadow-lg shadow-indigo-900/40 transition-colors"
-          >
-            {t(tekst.landing.finalCta)}
-          </Link>
+      {/* Final CTA */}
+      <div className="finalcta">
+        <div className="finalcta-inner">
+          <div>
+            <h2>Klar til at spille med?</h2>
+          </div>
+          <div>
+            <p>{tekst.landing.finalCtaTekst}</p>
+            <Link href="/log-ind" className="btn">
+              {t(tekst.landing.finalCta)}
+              <span className="arrow" aria-hidden />
+            </Link>
+          </div>
         </div>
-      </section>
-    </main>
+      </div>
+
+      {/* Footer */}
+      <footer className="gfc-footer">
+        <div className="container">
+          <div className="gfc-footer-inner">
+            <span>GFC {CURRENT_SEASON}</span>
+            <span>Data fra Sleeper API</span>
+            <span>Guldbjergs Fantasy Challenge</span>
+          </div>
+        </div>
+      </footer>
+    </div>
   )
 }

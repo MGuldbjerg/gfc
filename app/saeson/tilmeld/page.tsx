@@ -10,16 +10,30 @@ const RÆKKER = [
   { id: 'chopped', label: 'Chopped', desc: 'Guillotine-format — én ryger ud om ugen' },
 ]
 
+const PRIORITET_LABEL = ['1. prioritet', '2. prioritet', '3. prioritet']
+
 export default function SaesonTilmeldPage() {
   const router = useRouter()
-  const [valgteRækker, setValgteRækker] = useState<string[]>(['bestball', 'managed'])
+  // Ordered list — index 0 is top priority. Submitted as-is to the API.
+  const [prioritet, setPrioritet] = useState<string[]>(['bestball', 'managed'])
   const [fejl, setFejl] = useState('')
   const [loading, setLoading] = useState(false)
 
   function toggle(id: string) {
-    setValgteRækker(prev =>
+    setPrioritet(prev =>
       prev.includes(id) ? prev.filter(r => r !== id) : [...prev, id]
     )
+  }
+
+  function flyt(id: string, retning: -1 | 1) {
+    setPrioritet(prev => {
+      const idx = prev.indexOf(id)
+      const nyIdx = idx + retning
+      if (nyIdx < 0 || nyIdx >= prev.length) return prev
+      const næste = [...prev]
+      ;[næste[idx], næste[nyIdx]] = [næste[nyIdx], næste[idx]]
+      return næste
+    })
   }
 
   async function tilmeld(e: React.FormEvent) {
@@ -30,7 +44,7 @@ export default function SaesonTilmeldPage() {
     const res = await fetch('/api/saeson/tilmeld', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ valgteRækker }),
+      body: JSON.stringify({ valgteRækker: prioritet }),
     })
 
     setLoading(false)
@@ -50,7 +64,9 @@ export default function SaesonTilmeldPage() {
         <div className="text-center mb-8">
           <div className="text-4xl mb-2">🏈</div>
           <h1 className="text-2xl font-bold text-white">Tilmeld dig GFC {CURRENT_SEASON}</h1>
-          <p className="text-gray-500 text-sm mt-1">Vælg de rækker du vil med i.</p>
+          <p className="text-gray-500 text-sm mt-1">
+            Vælg de rækker du vil spille og sæt dem i rækkefølge. Vi fordeler dig efter din 1. prioritet hvis muligt.
+          </p>
         </div>
 
         {fejl && (
@@ -61,34 +77,77 @@ export default function SaesonTilmeldPage() {
 
         <form onSubmit={tilmeld} className="flex flex-col gap-4">
           <div className="flex flex-col gap-2">
-            {RÆKKER.map(({ id, label, desc }) => (
-              <label key={id}
-                className={`flex items-start gap-3 p-3 rounded-lg border cursor-pointer transition-colors
-                  ${valgteRækker.includes(id)
-                    ? 'border-indigo-500 bg-indigo-500/10'
-                    : 'border-gray-700 hover:border-gray-600'}`}>
-                <input
-                  type="checkbox" checked={valgteRækker.includes(id)}
-                  onChange={() => toggle(id)}
-                  className="mt-0.5 accent-indigo-500"
-                />
-                <div>
-                  <p className="text-white text-sm font-medium">{label}</p>
-                  <p className="text-gray-500 text-xs">{desc}</p>
+            {RÆKKER.map(({ id, label, desc }) => {
+              const prio = prioritet.indexOf(id)
+              const valgt = prio !== -1
+              return (
+                <div
+                  key={id}
+                  className={`flex items-center gap-3 p-3 rounded-lg border transition-colors
+                    ${valgt
+                      ? 'border-indigo-500 bg-indigo-500/10'
+                      : 'border-gray-700 hover:border-gray-600'}`}
+                >
+                  {/* Priority badge — click to toggle */}
+                  <button
+                    type="button"
+                    onClick={() => toggle(id)}
+                    className={`w-8 h-8 shrink-0 rounded-full text-xs font-bold flex items-center justify-center transition-colors
+                      ${valgt
+                        ? 'bg-indigo-600 text-white hover:bg-indigo-700'
+                        : 'bg-gray-700 text-gray-400 hover:bg-gray-600'}`}
+                    aria-label={valgt ? `Fjern ${label}` : `Tilføj ${label}`}
+                  >
+                    {valgt ? prio + 1 : '+'}
+                  </button>
+
+                  {/* Label */}
+                  <div className="flex-1 min-w-0 cursor-pointer" onClick={() => toggle(id)}>
+                    <p className="text-white text-sm font-medium">{label}</p>
+                    <p className="text-gray-500 text-xs">{desc}</p>
+                    {valgt && (
+                      <p className="text-indigo-400 text-xs mt-0.5">{PRIORITET_LABEL[prio]}</p>
+                    )}
+                  </div>
+
+                  {/* Up / Down — only when selected */}
+                  {valgt && (
+                    <div className="flex flex-col gap-0.5 shrink-0">
+                      <button
+                        type="button"
+                        onClick={() => flyt(id, -1)}
+                        disabled={prio === 0}
+                        className="text-gray-500 hover:text-white disabled:opacity-20 px-1 py-0.5 text-xs leading-none"
+                        aria-label="Flyt op i prioritet"
+                      >
+                        ▲
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => flyt(id, 1)}
+                        disabled={prio === prioritet.length - 1}
+                        className="text-gray-500 hover:text-white disabled:opacity-20 px-1 py-0.5 text-xs leading-none"
+                        aria-label="Flyt ned i prioritet"
+                      >
+                        ▼
+                      </button>
+                    </div>
+                  )}
                 </div>
-              </label>
-            ))}
+              )
+            })}
           </div>
 
           <button
-            type="submit" disabled={loading || valgteRækker.length === 0}
+            type="submit"
+            disabled={loading || prioritet.length === 0}
             className="bg-indigo-600 hover:bg-indigo-500 disabled:bg-gray-700 text-white font-semibold py-3 rounded-lg transition-colors mt-2"
           >
             {loading ? 'Gemmer...' : `Tilmeld mig GFC ${CURRENT_SEASON}`}
           </button>
 
           <p className="text-gray-600 text-xs text-center">
-            Du kan altid framelde dig senere fra din side.
+            Du kan altid ændre dine præferencer eller framelde dig fra din side.
           </p>
         </form>
       </div>

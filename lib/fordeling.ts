@@ -1,5 +1,3 @@
-// Ligafordelingsalgoritme
-
 export type LeagueType = 'bestball' | 'managed' | 'chopped'
 
 export interface Deltager {
@@ -7,19 +5,34 @@ export interface Deltager {
   displayName: string
   sleeperUsername: string
   registrationId: string
+  // Ordered list of preferred types — index 0 = top priority.
+  // Priority matters when a type is oversubscribed: people with fewer total
+  // preferences sort first (less flexibility → higher priority), tiebroken by
+  // their personal rank of that type (lower index = higher priority).
   preferredTypes: LeagueType[]
+  pinned?: boolean  // set in results for VIP-pinned people
+}
+
+export interface Pin {
+  profileId: string
+  ligaNavn: string  // e.g. "BB1", "M2"
 }
 
 export interface LigaForslag {
-  ligaNavn: string    // fx "BB1", "M3"
+  ligaNavn: string
   type: LeagueType
   deltagere: Deltager[]
 }
 
 export interface FordelingsResultat {
   ligaer: LigaForslag[]
-  ikkeFordelbare: Deltager[] // ønskede rækker der ikke er plads til
+  // People who wanted at least one type but got zero leagues.
+  // This only happens in the edge case where more "single-preference" people
+  // exist than a full league can hold for that type. The admin handles these manually.
+  ikkeFordelbare: Deltager[]
 }
+
+const TYPES: LeagueType[] = ['bestball', 'managed', 'chopped']
 
 function shuffle<T>(arr: T[]): T[] {
   const a = [...arr]
@@ -30,47 +43,148 @@ function shuffle<T>(arr: T[]): T[] {
   return a
 }
 
-function genererLigaNavne(type: LeagueType, antal: number): string[] {
-  const præfiks = type === 'bestball' ? 'BB' : type === 'managed' ? 'M' : 'C'
-  return Array.from({ length: antal }, (_, i) => `${præfiks}${i + 1}`)
+function typeForNavn(navn: string): LeagueType | null {
+  if (navn.startsWith('BB')) return 'bestball'
+  if (navn.startsWith('M')) return 'managed'
+  if (navn.startsWith('C')) return 'chopped'
+  return null
 }
 
-export function fordelDeltagere(
-  deltagere: Deltager[],
+function næsteNavn(type: LeagueType, existing: Set<string>): string {
+  const præfiks = type === 'bestball' ? 'BB' : type === 'managed' ? 'M' : 'C'
+  let i = 1
+  while (existing.has(`${præfiks}${i}`)) i++
+  return `${præfiks}${i}`
+}
+
+// Fills `people` into leagues of `type`. Uses existing VIP-seeded leagues first
+// (least-full first for even distribution), then creates new leagues as needed.
+function distributeIntoLeagues(
+  people: Deltager[],
   type: LeagueType,
-  ligaStørrelse = 12
-): LigaForslag[] {
-  const relevante = deltagere.filter(d => d.preferredTypes.includes(type))
-  if (relevante.length === 0) return []
+  ligaMap: Map<string, LigaForslag>,
+  ligaStørrelse: number
+): void {
+  if (people.length === 0) return
 
-  const shuffled = shuffle(relevante)
-  const antalLigaer = Math.ceil(shuffled.length / ligaStørrelse)
-  const navne = genererLigaNavne(type, antalLigaer)
+  const existing = [...ligaMap.values()].filter(l => l.type === type)
 
-  const ligaer: LigaForslag[] = navne.map(navn => ({
-    ligaNavn: navn,
-    type,
-    deltagere: [],
-  }))
+  for (const d of shuffle(people)) {
+    // Always assign to the least-full league that still has room
+    existing.sort((a, b) => a.deltagere.length - b.deltagere.length)
+    const target = existing.find(l => l.deltagere.length < ligaStørrelse)
 
-  // Fordel jævnt — round-robin så alle ligaer får ca. samme størrelse
-  shuffled.forEach((deltager, i) => {
-    ligaer[i % antalLigaer].deltagere.push(deltager)
-  })
-
-  return ligaer
+    if (target) {
+      target.deltagere.push(d)
+    } else {
+      // All existing leagues are full — create a new one
+      const navn = næsteNavn(type, new Set(ligaMap.keys()))
+      const ny: LigaForslag = { ligaNavn: navn, type, deltagere: [d] }
+      ligaMap.set(navn, ny)
+      existing.push(ny)
+    }
+  }
 }
 
 export function beregnFordeling(
-  deltagere: Deltager[],
-  ligaStørrelse = 12
+  alleDeltagere: Deltager[],
+  ligaStørrelse = 12,
+  pins: Pin[] = []
 ): FordelingsResultat {
-  const bestball = fordelDeltagere(deltagere, 'bestball', ligaStørrelse)
-  const managed = fordelDeltagere(deltagere, 'managed', ligaStørrelse)
-  const chopped = fordelDeltagere(deltagere, 'chopped', ligaStørrelse)
+  const deltagerMap = new Map(alleDeltagere.map(d => [d.profileId, d]))
+  const ligaMap = new Map<string, LigaForslag>()
 
-  return {
-    ligaer: [...bestball, ...managed, ...chopped],
-    ikkeFordelbare: [],
+  // Step 1: Place VIP-pinned people into their designated leagues.
+  // A person can have at most one VIP pin (the first valid one wins).
+  const vipPinnedType = new Map<string, LeagueType>() // profileId → which type they're pinned to
+
+  for (const pin of pins) {
+    const type = typeForNavn(pin.ligaNavn)
+    if (!type) continue
+    const d = deltagerMap.get(pin.profileId)
+    if (!d || vipPinnedType.has(pin.profileId)) continue  // skip unknown or already-pinned people
+
+    if (!ligaMap.has(pin.ligaNavn)) {
+      ligaMap.set(pin.ligaNavn, { ligaNavn: pin.ligaNavn, type, deltagere: [] })
+    }
+    ligaMap.get(pin.ligaNavn)!.deltagere.push({ ...d, pinned: true })
+    vipPinnedType.set(pin.profileId, type)
   }
+
+  // Track who ended up in each type (start with VIP assignments)
+  const inType = new Map<LeagueType, Set<string>>()
+  for (const type of TYPES) inType.set(type, new Set())
+  for (const [profileId, type] of vipPinnedType) inType.get(type)!.add(profileId)
+
+  // Step 2: For each type independently, assign the regular (non-VIP) pool.
+  for (const type of TYPES) {
+    const vipCount = inType.get(type)!.size
+
+    // Everyone who wants this type and is NOT already VIP-pinned into it
+    const candidates = alleDeltagere.filter(
+      d => d.preferredTypes.includes(type) && !vipPinnedType.has(d.profileId)
+    )
+
+    // Sort so that people with fewer total preferences come first.
+    // Within the same flexibility tier, the one who ranked this type higher wins.
+    candidates.sort((a, b) => {
+      const byFlexibility = a.preferredTypes.length - b.preferredTypes.length
+      if (byFlexibility !== 0) return byFlexibility
+      return a.preferredTypes.indexOf(type) - b.preferredTypes.indexOf(type)
+    })
+
+    // Capacity: floor((VIPs + regular candidates) / ligaStørrelse) leagues in total.
+    // VIPs always get their spots; the floor applies to the regular pool around them.
+    const totalWanting = vipCount + candidates.length
+    const totalLeagues = Math.floor(totalWanting / ligaStørrelse)
+    const regularCapacity = Math.max(0, totalLeagues * ligaStørrelse - vipCount)
+
+    // Randomly shuffle within each priority tier so placement is fair among equals.
+    // The sort above is stable, so we shuffle within tiers by re-sorting after per-tier shuffle.
+    const tiered = shuffleWithinTiers(candidates, type)
+    const toAssign = tiered.slice(0, regularCapacity)
+    // tiered[regularCapacity..] are bumped from this type — they may still play other types.
+
+    distributeIntoLeagues(toAssign, type, ligaMap, ligaStørrelse)
+    for (const d of toAssign) inType.get(type)!.add(d.profileId)
+  }
+
+  // ikkeFordelbare: had preferences but got zero leagues (extreme edge case)
+  const ikkeFordelbare = alleDeltagere.filter(d => {
+    if (d.preferredTypes.length === 0) return false  // no preferences = not expected to be placed
+    return !TYPES.some(type => inType.get(type)!.has(d.profileId))
+  })
+
+  const typeOrder: Record<LeagueType, number> = { bestball: 0, managed: 1, chopped: 2 }
+  const ligaer = [...ligaMap.values()].sort((a, b) => {
+    const td = typeOrder[a.type] - typeOrder[b.type]
+    return td !== 0 ? td : a.ligaNavn.localeCompare(b.ligaNavn, undefined, { numeric: true })
+  })
+
+  return { ligaer, ikkeFordelbare }
+}
+
+// Shuffles people within their priority tiers so equal-priority candidates are
+// randomly ordered while the overall sort (fewer preferences first) is preserved.
+function shuffleWithinTiers(candidates: Deltager[], type: LeagueType): Deltager[] {
+  if (candidates.length === 0) return []
+
+  const result: Deltager[] = []
+  let tierStart = 0
+
+  while (tierStart < candidates.length) {
+    const a = candidates[tierStart]
+    let tierEnd = tierStart + 1
+    while (
+      tierEnd < candidates.length &&
+      candidates[tierEnd].preferredTypes.length === a.preferredTypes.length &&
+      candidates[tierEnd].preferredTypes.indexOf(type) === a.preferredTypes.indexOf(type)
+    ) {
+      tierEnd++
+    }
+    result.push(...shuffle(candidates.slice(tierStart, tierEnd)))
+    tierStart = tierEnd
+  }
+
+  return result
 }

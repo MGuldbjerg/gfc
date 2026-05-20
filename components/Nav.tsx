@@ -1,6 +1,7 @@
 import Link from 'next/link'
 import { auth } from '@/auth'
 import { tekst, t } from '@/content/tekst'
+import { CURRENT_SEASON } from '@/lib/leagues'
 
 const links = [
   { href: '/leaderboard', label: tekst.nav.leaderboard },
@@ -15,52 +16,39 @@ export async function Nav() {
   const loggedIn = !!session?.user
 
   return (
-    <header className="sticky top-0 z-40 border-b border-gray-800/60 bg-gray-950/85 backdrop-blur">
-      <div className="max-w-6xl mx-auto flex items-center justify-between gap-4 px-4 py-3">
-        <Link
-          href="/"
-          className="flex items-center gap-2 text-white font-semibold tracking-tight text-lg"
-        >
-          <span aria-hidden>🏈</span>
-          <span>GFC</span>
+    <nav className="gfc-nav" aria-label="Primær navigation">
+      <div className="gfc-nav-inner">
+        <Link href="/" className="gfc-brand">
+          <span className="gfc-brand-mark" aria-hidden>G</span>
+          <span className="gfc-brand-word">GFC</span>
+          <span className="gfc-brand-year">{CURRENT_SEASON}</span>
         </Link>
 
-        <nav className="flex flex-wrap items-center gap-1 sm:gap-2">
+        <div className="gfc-nav-links">
           {links.map(link => (
-            <Link
-              key={link.href}
-              href={link.href}
-              className="text-sm text-gray-300 hover:text-white px-2 sm:px-3 py-1.5 rounded-md hover:bg-gray-800/60 transition-colors"
-            >
+            <Link key={link.href} href={link.href} className="gfc-nav-link">
               {link.label}
             </Link>
           ))}
+        </div>
 
+        <div style={{ display: 'flex', alignItems: 'center' }}>
           {loggedIn ? (
-            <Link
-              href="/min-side"
-              className="ml-1 sm:ml-2 bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-medium px-3 py-1.5 rounded-md transition-colors"
-            >
+            <Link href="/min-side" className="gfc-nav-cta">
               Min side
             </Link>
           ) : (
             <>
-              <Link
-                href="/log-ind"
-                className="text-sm text-gray-300 hover:text-white px-2 sm:px-3 py-1.5 rounded-md hover:bg-gray-800/60 transition-colors"
-              >
+              <Link href="/log-ind" className="gfc-nav-link">
                 Log ind
               </Link>
-              <Link
-                href="/log-ind"
-                className="ml-1 sm:ml-2 hidden md:inline-flex bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-medium px-3 py-1.5 rounded-md transition-colors"
-              >
+              <Link href="/log-ind" className="gfc-nav-cta">
                 {t(tekst.nav.tilmeldCta)}
               </Link>
             </>
           )}
-        </nav>
+        </div>
       </div>
-    </header>
+    </nav>
   )
 }
