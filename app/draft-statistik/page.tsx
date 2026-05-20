@@ -1,8 +1,11 @@
 import Link from 'next/link'
 import { calculateDraftStatistics, type ADPStats } from '@/lib/draft-stats'
 import { listSæsoner } from '@/lib/historie'
+import { DraftRefreshButton } from '@/components/DraftRefreshButton'
 
-export const revalidate = 2592000 // 30 days — draft picks are immutable
+// During draft season (June–August) drop to 5 min so the refresh button
+// picks up new picks quickly. Outside that window the data is immutable.
+export const revalidate = 300
 
 export default async function DraftStatistikPage({
   searchParams,
@@ -23,8 +26,13 @@ export default async function DraftStatistikPage({
             <span className="dash" />
             <span className="eyebrow">Draft</span>
           </div>
-          <h1>Draftstatistik</h1>
-          <p className="sub">ADP, udsving og drafttendenser på tværs af GFC-ligaer.</p>
+          <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', gap: 16, flexWrap: 'wrap' }}>
+            <div>
+              <h1>Draftstatistik</h1>
+              <p className="sub">ADP, udsving og drafttendenser på tværs af GFC-ligaer.</p>
+            </div>
+            <DraftRefreshButton />
+          </div>
         </div>
 
         {sæsoner.length === 0 ? (

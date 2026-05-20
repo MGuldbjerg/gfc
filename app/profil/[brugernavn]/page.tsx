@@ -17,10 +17,10 @@ const TYPELABEL: Record<string, string> = {
   chopped: 'Chopped',
 }
 
-const TYPEBADGE: Record<string, string> = {
-  bestball: 'bg-indigo-900/50 text-indigo-300',
-  managed:  'bg-blue-900/50 text-blue-300',
-  chopped:  'bg-purple-900/50 text-purple-300',
+const TYPEIX: Record<string, string> = {
+  bestball: '01',
+  managed:  '02',
+  chopped:  '03',
 }
 
 export default async function ProfilPage({ params }: Props) {
@@ -38,54 +38,73 @@ export default async function ProfilPage({ params }: Props) {
   const badges = beregnBadges(sæsoner, profil.sleeperUserId)
 
   return (
-    <main className="min-h-screen bg-gray-950 text-white p-4 md:p-8">
-      <div className="max-w-4xl mx-auto">
-
-        {/* Tilbage */}
-        <Link href="/leaderboard" className="text-gray-500 hover:text-white text-sm transition-colors">
-          ← Leaderboard
-        </Link>
-
-        {/* Profilhoved */}
-        <div className="flex items-center gap-5 mt-6 mb-10">
-          <div className="w-20 h-20 rounded-full bg-gray-800 overflow-hidden shrink-0 flex items-center justify-center text-3xl">
-            {avatarUrl
-              ? <img src={avatarUrl} alt={profil.displayName ?? brugernavn} className="w-full h-full object-cover" />
-              : '👤'
-            }
-          </div>
-          <div>
-            <h1 className="text-3xl font-bold">{profil.displayName ?? brugernavn}</h1>
-            <p className="text-gray-500 text-sm mt-1 font-mono">{profil.sleeperUsername} på Sleeper</p>
-            <p className="text-gray-600 text-sm mt-1">{alleSæsonÅr.length} sæson{alleSæsonÅr.length !== 1 ? 'er' : ''} i GFC</p>
+    <div className="gfc-app">
+      <div className="container" style={{ maxWidth: 900 }}>
+        <div className="page-head" style={{ paddingBottom: 32 }}>
+          <Link href="/leaderboard" className="eyebrow" style={{ color: 'var(--muted)', display: 'inline-block', marginBottom: 24 }}>
+            ← Leaderboard
+          </Link>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 24, flexWrap: 'wrap' }}>
+            {/* Avatar */}
+            <div style={{
+              width: 72, height: 72,
+              borderRadius: '50%',
+              background: 'var(--bg-2)',
+              border: '1px solid var(--line)',
+              overflow: 'hidden',
+              flexShrink: 0,
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              fontSize: 28,
+            }}>
+              {avatarUrl
+                ? <img src={avatarUrl} alt={profil.displayName ?? brugernavn} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                : '○'
+              }
+            </div>
+            <div>
+              <h1 style={{ fontSize: 'clamp(28px, 4vw, 52px)' }}>{profil.displayName ?? brugernavn}</h1>
+              <p className="eyebrow" style={{ marginTop: 8 }}>
+                {profil.sleeperUsername} på Sleeper · {alleSæsonÅr.length} sæson{alleSæsonÅr.length !== 1 ? 'er' : ''} i GFC
+              </p>
+            </div>
           </div>
         </div>
 
-        {/* Badges */}
         <BadgeHylde badges={badges} />
 
-        {/* Sæson-tabs */}
-        {alleSæsonÅr.map(år => {
-          const sæsonLigaer = sæsoner.filter(s => s.sæson === år)
-          return (
-            <section key={år} className="mb-10">
-              <h2 className="text-xl font-semibold mb-4 text-gray-300">Sæson {år}</h2>
-              <div className="grid grid-cols-1 gap-6">
-                {sæsonLigaer.map(s => (
-                  <LigaKort key={`${år}-${s.ligaNavn}`} data={s} />
-                ))}
-              </div>
-            </section>
-          )
-        })}
-
-        {sæsoner.length === 0 && (
-          <div className="bg-gray-900 rounded-xl p-8 text-center text-gray-500">
-            Ingen GFC-sæsondata fundet for dette brugernavn.
+        {sæsoner.length === 0 ? (
+          <div style={{
+            padding: '48px 32px',
+            textAlign: 'center',
+            background: 'var(--panel)',
+            border: '1px solid var(--line)',
+            borderRadius: 'var(--r)',
+            marginBottom: 80,
+          }}>
+            <p className="eyebrow">Ingen GFC-sæsondata fundet for dette brugernavn.</p>
+          </div>
+        ) : (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 56, paddingBottom: 96 }}>
+            {alleSæsonÅr.map(år => {
+              const ligaer = sæsoner.filter(s => s.sæson === år)
+              return (
+                <section key={år}>
+                  <div className="lb-section-head">
+                    Sæson {år}
+                    <span className="dash" />
+                  </div>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+                    {ligaer.map(s => (
+                      <LigaKort key={`${år}-${s.ligaNavn}`} data={s} />
+                    ))}
+                  </div>
+                </section>
+              )
+            })}
           </div>
         )}
       </div>
-    </main>
+    </div>
   )
 }
 
@@ -93,27 +112,28 @@ function LigaKort({ data }: { data: SæsonData }) {
   const maxPoint = Math.max(...data.weeklyScores.map(w => w.point), 1)
 
   return (
-    <div className="bg-gray-900 rounded-xl p-6">
+    <div className="lb-col">
       {/* Header */}
-      <div className="flex flex-wrap items-start justify-between gap-4 mb-6">
-        <div className="flex items-center gap-3">
-          <span className={`px-3 py-1 rounded-full text-sm font-medium ${TYPEBADGE[data.leagueType]}`}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16, marginBottom: 24, flexWrap: 'wrap' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+          <span className="lb-ix">{TYPEIX[data.leagueType] ?? '—'}</span>
+          <span style={{ fontFamily: 'var(--font-display)', fontWeight: 600, fontSize: 20, letterSpacing: '-0.02em' }}>
             {TYPELABEL[data.leagueType]}
           </span>
-          <span className="text-gray-400 font-medium">{data.ligaNavn}</span>
+          <span className="eyebrow" style={{ color: 'var(--muted-2)' }}>{data.ligaNavn}</span>
         </div>
         {data.rangPlacering && (
-          <div className="text-right">
-            <span className="text-2xl font-bold">
-              {data.rangPlacering === 1 ? '🥇' : data.rangPlacering === 2 ? '🥈' : data.rangPlacering === 3 ? '🥉' : `#${data.rangPlacering}`}
+          <div style={{ textAlign: 'right' }}>
+            <span style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 28, letterSpacing: '-0.03em', color: 'var(--ink)' }}>
+              #{data.rangPlacering}
             </span>
-            <p className="text-gray-600 text-xs mt-0.5">af {data.antalHold} hold</p>
+            <p className="eyebrow" style={{ marginTop: 2 }}>af {data.antalHold} hold</p>
           </div>
         )}
       </div>
 
-      {/* Nøgletal */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-6">
+      {/* Stats */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(100px, 1fr))', gap: 12, marginBottom: 24 }}>
         <StatKort label="Total point" value={data.totalPoint.toFixed(1)} />
         {data.wins !== undefined && (
           <StatKort label="Sejre" value={`${data.wins}–${data.losses ?? 0}`} />
@@ -126,31 +146,33 @@ function LigaKort({ data }: { data: SæsonData }) {
         <StatKort label="Uger spillet" value={String(data.weeklyScores.length)} />
       </div>
 
-      {/* Ugescorer søjlediagram */}
+      {/* Bar chart */}
       {data.weeklyScores.length > 0 && (
         <div>
-          <p className="text-gray-600 text-xs mb-2">Point per uge</p>
-          <div className="flex items-end gap-1 h-16">
+          <p className="eyebrow" style={{ marginBottom: 10 }}>Point per uge</p>
+          <div style={{ display: 'flex', alignItems: 'flex-end', gap: 3, height: 56 }}>
             {data.weeklyScores.map(w => {
               const pct = (w.point / maxPoint) * 100
               const erHøjeste = w.point === data.højesteSingleScore
               return (
-                <div key={w.uge} className="flex-1 flex flex-col items-center gap-1 group relative">
-                  <div
-                    className={`w-full rounded-t transition-colors ${erHøjeste ? 'bg-yellow-500' : 'bg-indigo-600 group-hover:bg-indigo-400'}`}
-                    style={{ height: `${Math.max(pct, 4)}%` }}
-                  />
-                  {/* Tooltip */}
-                  <div className="absolute bottom-full mb-1 left-1/2 -translate-x-1/2 bg-gray-800 text-white text-xs px-2 py-1 rounded opacity-0 group-hover:opacity-100 pointer-events-none whitespace-nowrap z-10">
-                    Uge {w.uge}: {w.point.toFixed(1)}
-                  </div>
-                </div>
+                <div
+                  key={w.uge}
+                  title={`Uge ${w.uge}: ${w.point.toFixed(1)}`}
+                  style={{
+                    flex: 1,
+                    height: `${Math.max(pct, 4)}%`,
+                    background: erHøjeste ? 'var(--accent)' : 'var(--line)',
+                    borderRadius: '3px 3px 0 0',
+                    transition: 'background .15s',
+                    cursor: 'default',
+                  }}
+                />
               )
             })}
           </div>
-          <div className="flex justify-between text-gray-700 text-xs mt-1">
-            <span>Uge 1</span>
-            <span>Uge {data.weeklyScores[data.weeklyScores.length - 1]?.uge}</span>
+          <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 6 }}>
+            <span className="eyebrow">Uge 1</span>
+            <span className="eyebrow">Uge {data.weeklyScores[data.weeklyScores.length - 1]?.uge}</span>
           </div>
         </div>
       )}
@@ -158,18 +180,19 @@ function LigaKort({ data }: { data: SæsonData }) {
   )
 }
 
-function StatKort({
-  label, value, sub,
-}: {
-  label: string
-  value: string
-  sub?: string
-}) {
+function StatKort({ label, value, sub }: { label: string; value: string; sub?: string }) {
   return (
-    <div className="bg-gray-800/50 rounded-lg p-3">
-      <p className="text-gray-500 text-xs mb-1">{label}</p>
-      <p className="text-white font-bold text-lg leading-none">{value}</p>
-      {sub && <p className="text-gray-600 text-xs mt-1">{sub}</p>}
+    <div style={{
+      padding: '14px 16px',
+      background: 'var(--bg-2)',
+      border: '1px solid var(--line-2)',
+      borderRadius: 'var(--r-sm)',
+    }}>
+      <p className="eyebrow" style={{ marginBottom: 8 }}>{label}</p>
+      <p style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 22, letterSpacing: '-0.025em', lineHeight: 1, color: 'var(--ink)' }}>
+        {value}
+      </p>
+      {sub && <p className="eyebrow" style={{ marginTop: 6 }}>{sub}</p>}
     </div>
   )
 }

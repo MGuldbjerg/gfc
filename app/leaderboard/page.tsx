@@ -1,3 +1,4 @@
+import Link from 'next/link'
 import { computeLeaderboard, type LeaderboardType } from '@/lib/leaderboard'
 import { CURRENT_SEASON } from '@/lib/leagues'
 import { queryOne } from '@/lib/turso'
@@ -23,8 +24,59 @@ export default async function LeaderboardPage() {
   ])
 
   const harChopped = chopped.entries.length > 0
+  const ingenData = bestball.entries.length === 0 && managed.entries.length === 0 && chopped.entries.length === 0
   const bbHigh = bestball.seasonHighscore
   const mHigh = managed.seasonHighscore
+
+  if (ingenData) {
+    return (
+      <div className="gfc-app">
+        <div className="container">
+          <div className="page-head">
+            <div className="kicker-strip">
+              <span className="dash" />
+              <span className="eyebrow">GFC {CURRENT_SEASON}</span>
+            </div>
+            <h1>Leaderboard</h1>
+          </div>
+          <div style={{
+            padding: '64px 48px',
+            background: 'var(--panel)',
+            border: '1px solid var(--line)',
+            borderRadius: 'var(--r)',
+            boxShadow: 'var(--sh-1)',
+            display: 'grid',
+            gridTemplateColumns: '1.2fr 1fr',
+            gap: 48,
+            alignItems: 'center',
+            marginBottom: 80,
+          }}>
+            <div>
+              <div className="kicker-strip" style={{ marginBottom: 20 }}>
+                <span className="dash" />
+                <span className="eyebrow">Sæson {CURRENT_SEASON}</span>
+              </div>
+              <h2 className="section-title" style={{ fontSize: 'clamp(28px, 3vw, 44px)' }}>
+                Sæsonen starter i september
+              </h2>
+              <p className="lede" style={{ marginTop: 16, maxWidth: '44ch' }}>
+                NFL-sæsonen er ikke startet endnu. Tilmeld dig nu — slow drafts starter i juni.
+              </p>
+            </div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 16, alignItems: 'flex-start' }}>
+              <Link href="/log-ind" className="btn">
+                Tilmeld dig GFC {CURRENT_SEASON}
+                <span className="arrow" aria-hidden />
+              </Link>
+              <Link href="/historie" className="btn ghost">
+                Se tidligere sæsoner
+              </Link>
+            </div>
+          </div>
+        </div>
+      </div>
+    )
+  }
 
   return (
     <div className="gfc-app">
