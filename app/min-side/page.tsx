@@ -46,93 +46,127 @@ export default async function MinSide() {
   }
 
   return (
-    <main className="min-h-screen bg-gray-950 text-white p-4 md:p-8">
-      <div className="max-w-3xl mx-auto">
-        <div className="flex items-center justify-between mb-8">
-          <div>
-            <p className="text-sm text-gray-500">Din side</p>
-            <h1 className="text-3xl font-bold mt-1">{profil.display_name}</h1>
-            <p className="text-gray-500 text-sm mt-1">@{profil.username}</p>
+    <div className="gfc-app">
+      <div className="container" style={{ maxWidth: 800 }}>
+        <div className="page-head" style={{ paddingBottom: 32 }}>
+          <div className="kicker-strip">
+            <span className="dash" />
+            <span className="eyebrow">Din side</span>
           </div>
-          <form action={logUd}>
-            <button type="submit" className="text-sm text-gray-400 hover:text-white">
-              Log ud
-            </button>
-          </form>
+          <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 16 }}>
+            <div>
+              <h1 style={{ fontSize: 'clamp(32px, 4vw, 52px)' }}>{profil.display_name}</h1>
+              <p className="eyebrow" style={{ marginTop: 8 }}>@{profil.username}</p>
+            </div>
+            <form action={logUd} style={{ flexShrink: 0, paddingTop: 8 }}>
+              <button
+                type="submit"
+                className="eyebrow"
+                style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: '0.1em' }}
+              >
+                Log ud
+              </button>
+            </form>
+          </div>
         </div>
 
         {!reg ? <BannerTilmeldSaeson /> : <StatusKort reg={reg} rækker={rækker} />}
 
-        <div className="mt-8 grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <DashboardKort href="/indstillinger" emoji="⚙️" titel="Indstillinger" tekst="Privatliv og nyhedsbrev" />
-          <DashboardKort href="/leaderboard" emoji="🏆" titel="Leaderboard" tekst="Se sæsonens stilling" />
-          <DashboardKort href="/historie" emoji="📚" titel="Historie" tekst="Resultater fra tidligere sæsoner" />
-          <DashboardKort href="/draft-statistik" emoji="📊" titel="Draftstatistik" tekst="ADP og format-sammenligning" />
+        <div style={{ marginTop: 32, display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 12 }}>
+          <DashboardKort href="/indstillinger" ix="01" titel="Indstillinger" tekst="Privatliv og nyhedsbrev" />
+          <DashboardKort href="/leaderboard" ix="02" titel="Leaderboard" tekst="Se sæsonens stilling" />
+          <DashboardKort href="/historie" ix="03" titel="Historie" tekst="Resultater fra tidligere sæsoner" />
+          <DashboardKort href="/draft-statistik" ix="04" titel="Draftstatistik" tekst="ADP og format-sammenligning" />
         </div>
 
         {session.user.isAdmin && (
-          <div className="mt-8 bg-indigo-900/30 border border-indigo-700/40 rounded-2xl p-5">
-            <p className="text-indigo-300 text-xs font-semibold uppercase tracking-wider mb-2">Admin</p>
-            <Link href="/admin" className="text-white hover:underline">→ Gå til admin-dashboardet</Link>
+          <div style={{
+            marginTop: 32,
+            padding: '20px 24px',
+            background: 'var(--panel)',
+            border: '1px solid var(--line)',
+            borderRadius: 'var(--r)',
+          }}>
+            <span className="eyebrow" style={{ display: 'block', marginBottom: 10 }}>Admin</span>
+            <Link href="/admin" style={{ color: 'var(--accent)', fontWeight: 500 }}>
+              Gå til admin-dashboardet →
+            </Link>
           </div>
         )}
+
+        <div style={{ paddingBottom: 80 }} />
       </div>
-    </main>
+    </div>
   )
 }
 
 function BannerTilmeldSaeson() {
   return (
-    <div className="bg-gradient-to-br from-indigo-900/60 to-indigo-800/40 border border-indigo-700/40 rounded-2xl p-6 sm:p-8">
-      <div className="flex flex-col sm:flex-row sm:items-center gap-4 sm:gap-6">
-        <div className="text-4xl">🏈</div>
-        <div className="flex-1">
-          <h2 className="text-xl font-bold text-white">GFC {CURRENT_SEASON} er åben</h2>
-          <p className="text-gray-300 text-sm mt-1">
-            Du har en profil, men er ikke tilmeldt {CURRENT_SEASON} endnu. Tilmeld dig nu og vælg dine rækker.
-          </p>
-        </div>
-        <Link
-          href="/saeson/tilmeld"
-          className="bg-indigo-600 hover:bg-indigo-500 text-white font-semibold px-6 py-3 rounded-lg text-sm transition-colors whitespace-nowrap"
-        >
-          Tilmeld mig
-        </Link>
+    <div style={{
+      padding: '32px 28px',
+      background: 'var(--panel)',
+      border: '1px solid var(--line)',
+      borderRadius: 'var(--r)',
+      boxShadow: 'var(--sh-1)',
+      display: 'flex',
+      flexWrap: 'wrap',
+      alignItems: 'center',
+      gap: 24,
+    }}>
+      <div style={{ flex: 1, minWidth: 200 }}>
+        <p className="eyebrow" style={{ marginBottom: 10 }}>GFC {CURRENT_SEASON} er åben</p>
+        <p style={{ color: 'var(--ink-2)', fontSize: 15, lineHeight: 1.55 }}>
+          Du har en profil, men er ikke tilmeldt {CURRENT_SEASON} endnu. Tilmeld dig nu og vælg dine rækker.
+        </p>
       </div>
+      <Link href="/saeson/tilmeld" className="btn">
+        Tilmeld mig
+        <span className="arrow" aria-hidden />
+      </Link>
     </div>
   )
 }
 
 function StatusKort({ reg, rækker }: { reg: RegistrationRow; rækker: string[] }) {
   return (
-    <div className="bg-gray-900 border border-gray-800 rounded-2xl p-6">
-      <p className="text-green-400 text-xs font-semibold uppercase tracking-wider mb-2">
-        ✓ Tilmeldt GFC {CURRENT_SEASON}
+    <div style={{
+      padding: '28px',
+      background: 'var(--panel)',
+      border: '1px solid var(--line)',
+      borderRadius: 'var(--r)',
+      boxShadow: 'var(--sh-1)',
+    }}>
+      <p className="eyebrow" style={{ color: 'var(--pos)', marginBottom: 12 }}>
+        Tilmeldt GFC {CURRENT_SEASON}
       </p>
-      <h2 className="text-xl font-bold text-white">
+      <p style={{ fontFamily: 'var(--font-display)', fontSize: 22, fontWeight: 600, letterSpacing: '-0.02em', color: 'var(--ink)' }}>
         {reg.assigned_league_name
           ? `Du er tildelt ${reg.assigned_league_name}`
           : 'Afventer ligafordeling'}
-      </h2>
-      <p className="text-gray-400 text-sm mt-2">
+      </p>
+      <p style={{ color: 'var(--muted)', fontSize: 14, marginTop: 10 }}>
         Rækker: {rækker.length > 0 ? rækker.join(', ') : '—'}
       </p>
-      <p className="text-gray-500 text-xs mt-4">
-        Vil du ændre rækker? <Link href="/saeson/tilmeld" className="text-indigo-400 hover:underline">Opdater tilmelding</Link>
+      <p className="eyebrow" style={{ marginTop: 18 }}>
+        Vil du ændre rækker?{' '}
+        <Link href="/saeson/tilmeld" style={{ color: 'var(--accent)' }}>
+          Opdater tilmelding
+        </Link>
       </p>
     </div>
   )
 }
 
-function DashboardKort({ href, emoji, titel, tekst }: { href: string; emoji: string; titel: string; tekst: string }) {
+function DashboardKort({ href, ix, titel, tekst }: { href: string; ix: string; titel: string; tekst: string }) {
   return (
     <Link
       href={href}
-      className="bg-gray-900 border border-gray-800 rounded-xl p-5 hover:border-gray-700 transition-colors"
+      className="track"
+      style={{ display: 'block', textDecoration: 'none' }}
     >
-      <div className="text-2xl mb-2">{emoji}</div>
-      <p className="text-white font-semibold">{titel}</p>
-      <p className="text-gray-500 text-sm mt-1">{tekst}</p>
+      <span className="ix">{ix}</span>
+      <div className="name" style={{ fontSize: 20, marginTop: 8 }}>{titel}</div>
+      <p className="desc" style={{ marginTop: 8, fontSize: 13.5 }}>{tekst}</p>
     </Link>
   )
 }
