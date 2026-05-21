@@ -32,16 +32,14 @@ export default function IndstillingerPage() {
   async function gemIndstillinger() {
     setGemmer(true)
     setBesked('')
-
     const res = await fetch('/api/profil/præferencer', {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ visSleeper, visBadges, nyhedsbrev }),
     })
-
     setGemmer(false)
     if (res.ok) {
-      setBesked('Indstillinger gemt!')
+      setBesked('Indstillinger gemt.')
     } else {
       const data = await res.json().catch(() => ({}))
       setBesked(data.error ?? 'Noget gik galt. Prøv igen.')
@@ -50,82 +48,65 @@ export default function IndstillingerPage() {
 
   if (loading) {
     return (
-      <main className="min-h-screen bg-gray-950 flex items-center justify-center">
-        <div className="text-gray-500">Indlæser...</div>
-      </main>
+      <div className="form-page">
+        <p className="eyebrow">Indlæser…</p>
+      </div>
     )
   }
 
   const indstillinger = [
-    {
-      id: 'visSleeper',
-      checked: visSleeper,
-      onChange: setVisSleeper,
-      label: 'Vis Sleeper-brugernavn',
-      desc: 'Dit Sleeper-brugernavn vises på din offentlige profil',
-    },
-    {
-      id: 'visBadges',
-      checked: visBadges,
-      onChange: setVisBadges,
-      label: 'Vis badges',
-      desc: 'Din badge-hylde vises på din offentlige profil',
-    },
-    {
-      id: 'nyhedsbrev',
-      checked: nyhedsbrev,
-      onChange: setNyhedsbrev,
-      label: 'Nyhedsbrev',
-      desc: 'Modtag ugentlige highlights, præmier m.m. fra GFC',
-    },
+    { id: 'visSleeper', checked: visSleeper, onChange: setVisSleeper, label: 'Vis Sleeper-brugernavn', desc: 'Dit Sleeper-brugernavn vises på din offentlige profil' },
+    { id: 'visBadges',  checked: visBadges,  onChange: setVisBadges,  label: 'Vis badges',             desc: 'Din badge-hylde vises på din offentlige profil' },
+    { id: 'nyhedsbrev', checked: nyhedsbrev, onChange: setNyhedsbrev, label: 'Nyhedsbrev',              desc: 'Modtag ugentlige highlights, præmier m.m. fra GFC' },
   ]
 
   return (
-    <main className="min-h-screen bg-gray-950 text-white p-4 md:p-8">
-      <div className="max-w-md mx-auto">
-        <Link href="/min-side" className="text-gray-500 hover:text-white text-sm transition-colors">
-          ← Tilbage
-        </Link>
+    <div className="gfc-app">
+      <div className="container" style={{ maxWidth: 560 }}>
+        <div className="page-head" style={{ paddingBottom: 24 }}>
+          <Link href="/min-side" className="eyebrow" style={{ color: 'var(--muted)', display: 'inline-block', marginBottom: 20 }}>
+            ← Tilbage
+          </Link>
+          <h1 style={{ fontSize: 'clamp(28px, 4vw, 44px)' }}>Indstillinger</h1>
+        </div>
 
-        <h1 className="text-2xl font-bold mt-6 mb-8">Indstillinger</h1>
+        <div className="lb-col" style={{ marginBottom: 80 }}>
+          <div className="lb-col-head">
+            <span className="lb-col-name" style={{ fontSize: 16 }}>Privatlivspræferencer</span>
+          </div>
 
-        <div className="bg-gray-900 rounded-2xl p-6 flex flex-col gap-4">
-          <h2 className="text-xs text-gray-500 uppercase tracking-wider">Privatlivspræferencer</h2>
-
-          {indstillinger.map(({ id, checked, onChange, label, desc }) => (
-            <label
-              key={id}
-              className={`flex items-start gap-3 p-3 rounded-lg border cursor-pointer transition-colors
-                ${checked ? 'border-indigo-500 bg-indigo-500/10' : 'border-gray-700 hover:border-gray-600'}`}
-            >
-              <input
-                type="checkbox"
-                checked={checked}
-                onChange={e => onChange(e.target.checked)}
-                className="mt-0.5 accent-indigo-500"
-              />
-              <div>
-                <p className="text-white text-sm font-medium">{label}</p>
-                <p className="text-gray-500 text-xs mt-0.5">{desc}</p>
-              </div>
-            </label>
-          ))}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 20 }}>
+            {indstillinger.map(({ id, checked, onChange, label, desc }) => (
+              <label key={id} className="gfc-toggle">
+                <input
+                  type="checkbox"
+                  checked={checked}
+                  onChange={e => onChange(e.target.checked)}
+                />
+                <div>
+                  <div className="tgl-label">{label}</div>
+                  <div className="tgl-desc">{desc}</div>
+                </div>
+              </label>
+            ))}
+          </div>
 
           <button
             onClick={gemIndstillinger}
             disabled={gemmer}
-            className="bg-indigo-600 hover:bg-indigo-500 disabled:bg-gray-700 text-white font-semibold py-3 rounded-lg transition-colors mt-2"
+            className="btn"
+            style={{ width: '100%', justifyContent: 'center', opacity: gemmer ? 0.6 : 1 }}
           >
-            {gemmer ? 'Gemmer...' : 'Gem indstillinger'}
+            {gemmer ? 'Gemmer…' : 'Gem indstillinger'}
           </button>
 
           {besked && (
-            <p className={`text-sm text-center ${besked.includes('gemt') ? 'text-green-400' : 'text-red-400'}`}>
+            <p className="eyebrow" style={{ marginTop: 14, textAlign: 'center', color: besked.includes('gemt') ? 'var(--pos)' : 'var(--accent)' }}>
               {besked}
             </p>
           )}
         </div>
       </div>
-    </main>
+    </div>
   )
 }

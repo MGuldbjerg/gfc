@@ -49,43 +49,49 @@ export default async function AdminPage() {
   }))
 
   const stats = {
-    total: tilmeldinger.length,
-    tildelt: tilmeldinger.filter(t => t.status === 'assigned').length,
+    total:    tilmeldinger.length,
+    tildelt:  tilmeldinger.filter(t => t.status === 'assigned').length,
     bestball: tilmeldinger.filter(t => t.preferred_types.includes('bestball')).length,
-    managed: tilmeldinger.filter(t => t.preferred_types.includes('managed')).length,
-    chopped: tilmeldinger.filter(t => t.preferred_types.includes('chopped')).length,
+    managed:  tilmeldinger.filter(t => t.preferred_types.includes('managed')).length,
+    chopped:  tilmeldinger.filter(t => t.preferred_types.includes('chopped')).length,
   }
 
   return (
-    <main className="min-h-screen bg-gray-950 text-white p-4 md:p-8">
-      <div className="max-w-5xl mx-auto">
-        <h1 className="text-2xl font-bold mb-2">Admin — GFC {CURRENT_SEASON}</h1>
-        <p className="text-gray-500 text-sm mb-8">Tilmeldingsoversigt og ligafordeling</p>
-
-        <div className="grid grid-cols-2 sm:grid-cols-5 gap-3 mb-8">
-          {[
-            { label: 'Tilmeldte', value: stats.total, color: 'text-white' },
-            { label: 'Tildelt liga', value: stats.tildelt, color: 'text-green-400' },
-            { label: 'Bestball', value: stats.bestball, color: 'text-indigo-400' },
-            { label: 'Managed', value: stats.managed, color: 'text-blue-400' },
-            { label: 'Chopped', value: stats.chopped, color: 'text-purple-400' },
-          ].map(({ label, value, color }) => (
-            <div key={label} className="bg-gray-900 rounded-xl p-4">
-              <p className={`text-2xl font-bold ${color}`}>{value}</p>
-              <p className="text-gray-500 text-xs mt-1">{label}</p>
-            </div>
-          ))}
+    <>
+      <div className="page-head" style={{ paddingBottom: 32 }}>
+        <div className="kicker-strip">
+          <span className="dash" />
+          <span className="eyebrow">Admin</span>
         </div>
-
-        <div className="flex gap-3 mb-6">
-          <Link href="/admin/fordel"
-            className="bg-indigo-600 hover:bg-indigo-500 text-white px-5 py-2 rounded-lg font-medium transition-colors text-sm">
-            🔀 Fordel deltagere i ligaer
-          </Link>
-        </div>
-
-        <AdminTilmeldinger tilmeldinger={tilmeldinger} />
+        <h1>GFC {CURRENT_SEASON}</h1>
+        <p className="sub">Tilmeldingsoversigt og ligafordeling</p>
       </div>
-    </main>
+
+      <div className="stat-blocks" style={{ gridTemplateColumns: 'repeat(5, 1fr)', marginBottom: 32 }}>
+        {[
+          { label: 'Tilmeldte',  value: stats.total },
+          { label: 'Tildelt liga', value: stats.tildelt },
+          { label: 'Bestball',   value: stats.bestball },
+          { label: 'Managed',    value: stats.managed },
+          { label: 'Chopped',    value: stats.chopped },
+        ].map(({ label, value }) => (
+          <div key={label} className="stat-block">
+            <div className="stat-num" style={{ fontSize: 40 }}>{value}</div>
+            <div className="stat-label">{label}</div>
+          </div>
+        ))}
+      </div>
+
+      <div style={{ display: 'flex', gap: 12, marginBottom: 32 }}>
+        <Link href="/admin/fordel" className="btn">
+          Fordel deltagere i ligaer
+          <span className="arrow" aria-hidden />
+        </Link>
+      </div>
+
+      <AdminTilmeldinger tilmeldinger={tilmeldinger} />
+
+      <div style={{ paddingBottom: 80 }} />
+    </>
   )
 }

@@ -1,17 +1,19 @@
 export default function TjekMailPage() {
   return (
-    <main className="min-h-screen bg-gray-950 flex items-center justify-center p-4">
-      <div className="bg-gray-900 rounded-2xl p-8 max-w-md w-full text-center">
-        <div className="text-5xl mb-4">📬</div>
-        <h1 className="text-2xl font-bold text-white mb-3">Tjek din e-mail</h1>
-        <p className="text-gray-400 leading-relaxed">
-          Vi har sendt dig et link. Klik på det for at logge ind.
-          Linket virker i 24 timer.
+    <div className="form-page">
+      <div className="form-card" style={{ textAlign: 'center' }}>
+        <div className="kicker-strip" style={{ justifyContent: 'center', marginBottom: 20 }}>
+          <span className="dash" />
+          <span className="eyebrow">GFC</span>
+        </div>
+        <h1 className="form-card-title">Tjek din e-mail</h1>
+        <p className="form-card-sub" style={{ marginBottom: 0 }}>
+          Vi har sendt dig et link. Klik på det for at logge ind. Linket virker i 24 timer.
         </p>
-        <p className="text-gray-600 text-sm mt-4">
+        <p className="eyebrow" style={{ marginTop: 20 }}>
           Kan du ikke finde mailen? Tjek spam-mappen.
         </p>
       </div>
-    </main>
+    </div>
   )
 }

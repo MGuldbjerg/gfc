@@ -24,41 +24,39 @@ export default async function LogIndPage({
   }
 
   return (
-    <main className="min-h-screen bg-gray-950 flex items-center justify-center p-4">
-      <div className="bg-gray-900 rounded-2xl p-8 max-w-md w-full">
-        <div className="text-center mb-8">
-          <div className="text-4xl mb-2">🏈</div>
-          <h1 className="text-2xl font-bold text-white">Log ind på GFC</h1>
-          <p className="text-gray-500 text-sm mt-1">
-            Vi sender et magisk link til din e-mail — ingen adgangskode at huske.
-          </p>
+    <div className="form-page">
+      <div className="form-card">
+        <div className="kicker-strip" style={{ marginBottom: 20 }}>
+          <span className="dash" />
+          <span className="eyebrow">GFC</span>
         </div>
+        <h1 className="form-card-title">Log ind</h1>
+        <p className="form-card-sub">Vi sender et magisk link til din e-mail — ingen adgangskode.</p>
 
-        <form action={logInd} className="flex flex-col gap-4">
+        <form action={logInd} style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
           <input type="hidden" name="retur" value={safeRetur} />
           <div>
-            <label className="text-sm text-gray-400 mb-1 block">E-mail</label>
+            <label className="gfc-label" htmlFor="email">E-mail</label>
             <input
+              id="email"
               name="email"
               type="email"
               required
               autoFocus
-              className="w-full bg-gray-800 border border-gray-700 text-white rounded-lg px-4 py-3 focus:outline-none focus:border-indigo-500"
+              className="gfc-input"
               placeholder="din@email.dk"
             />
           </div>
-          <button
-            type="submit"
-            className="bg-indigo-600 hover:bg-indigo-500 text-white font-semibold py-3 rounded-lg transition-colors"
-          >
+          <button type="submit" className="btn" style={{ justifyContent: 'center' }}>
             Send mig et link
+            <span className="arrow" aria-hidden />
           </button>
         </form>
 
-        <p className="text-gray-600 text-xs mt-6 text-center">
+        <p className="eyebrow" style={{ marginTop: 20, textAlign: 'center' }}>
           Første gang? Linket opretter også din konto.
         </p>
       </div>
-    </main>
+    </div>
   )
 }
