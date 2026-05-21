@@ -3,6 +3,7 @@ import Link from 'next/link'
 import { hentProfilData } from '@/lib/profil'
 import { beregnBadges } from '@/lib/badges'
 import BadgeHylde from '@/components/BadgeHylde'
+import { listAfsluttedeSæsoner, hentSingleWeekRekord } from '@/lib/historie'
 import type { SæsonData } from '@/lib/profil'
 
 export const revalidate = 3600
@@ -35,7 +36,21 @@ export default async function ProfilPage({ params }: Props) {
 
   const sæsoner = profil.sæsoner
   const alleSæsonÅr = [...new Set(sæsoner.map(s => s.sæson))].sort().reverse()
-  const badges = beregnBadges(sæsoner, profil.sleeperUserId)
+
+  // Check if this player holds any all-time single-week record (needed for Peak badge)
+  const afsluttedeSæsoner = listAfsluttedeSæsoner()
+  const ugeRekorder = await Promise.all(
+    afsluttedeSæsoner.flatMap(s => [
+      hentSingleWeekRekord(s, 'bestball'),
+      hentSingleWeekRekord(s, 'managed'),
+      hentSingleWeekRekord(s, 'chopped'),
+    ])
+  )
+  const erUgeRekordHolder = ugeRekorder.some(
+    r => r !== null && r.username === profil.sleeperUsername
+  )
+
+  const badges = beregnBadges(sæsoner, profil.sleeperUserId, { erUgeRekordHolder })
 
   return (
     <div className="gfc-app">

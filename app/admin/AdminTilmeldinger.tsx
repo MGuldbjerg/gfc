@@ -11,6 +11,7 @@ interface Tilmelding {
   assigned_league_name: string | null
   status: string
   created_at: string
+  nyhedsbrev: boolean
   profiles: Profil | Profil[] | null
 }
 
@@ -82,13 +83,14 @@ export default function AdminTilmeldinger({ tilmeldinger }: { tilmeldinger: Tilm
               <th>Rækker</th>
               <th>Liga</th>
               <th>Status</th>
+              <th className="c">Mail</th>
               <th>Tilmeldt</th>
             </tr>
           </thead>
           <tbody>
             {filtrerede.length === 0 ? (
               <tr>
-                <td colSpan={6} style={{ textAlign: 'center', padding: '32px', color: 'var(--muted)' }}>
+                <td colSpan={7} style={{ textAlign: 'center', padding: '32px', color: 'var(--muted)' }}>
                   Ingen tilmeldinger
                 </td>
               </tr>
@@ -115,6 +117,9 @@ export default function AdminTilmeldinger({ tilmeldinger }: { tilmeldinger: Tilm
                     >
                       {t.status}
                     </span>
+                  </td>
+                  <td className="c" style={{ fontSize: 16 }} title={t.nyhedsbrev ? 'Tilmeldt nyhedsbrev' : 'Frameldt nyhedsbrev'}>
+                    {t.nyhedsbrev ? '✓' : '–'}
                   </td>
                   <td className="mono" style={{ fontSize: 11 }}>
                     {new Date(t.created_at).toLocaleDateString('da-DK')}

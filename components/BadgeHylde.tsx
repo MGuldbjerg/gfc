@@ -4,28 +4,54 @@ export default function BadgeHylde({ badges }: { badges: BadgeType[] }) {
   if (badges.length === 0) return null
 
   return (
-    <div className="mb-8">
-      <h2 className="text-sm text-gray-500 uppercase tracking-wider mb-3">Badges</h2>
-      <div className="flex flex-wrap gap-3">
+    <div style={{ marginBottom: 32 }}>
+      <p className="eyebrow" style={{ marginBottom: 12 }}>Badges</p>
+      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10 }}>
         {badges.map(id => {
           const b = BADGES[id]
           return (
             <div
               key={id}
-              title={b.beskrivelse}
-              className={`${b.farve} rounded-xl px-4 py-2.5 flex items-center gap-2.5 cursor-default select-none group relative`}
+              className={b.farve}
+              style={{ position: 'relative', display: 'inline-flex', alignItems: 'center', gap: 8, padding: '8px 16px', borderRadius: 'var(--r-pill)', cursor: 'default', userSelect: 'none' }}
             >
-              <span className="text-xl">{b.emoji}</span>
-              <span className="text-white font-semibold text-sm">{b.navn}</span>
+              <span style={{ fontSize: 18 }}>{b.emoji}</span>
+              <span style={{ color: '#fff', fontWeight: 600, fontSize: 13, fontFamily: 'var(--font-display)', letterSpacing: '-0.005em' }}>{b.navn}</span>
 
               {/* Tooltip */}
-              <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 bg-gray-900 border border-gray-700 text-gray-300 text-xs px-3 py-2 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap z-20 max-w-48 text-center">
+              <span style={{
+                position: 'absolute',
+                bottom: 'calc(100% + 8px)',
+                left: '50%',
+                transform: 'translateX(-50%)',
+                width: 200,
+                background: 'var(--ink)',
+                color: 'var(--bg)',
+                fontSize: 12,
+                lineHeight: 1.5,
+                padding: '8px 12px',
+                borderRadius: 'var(--r-sm)',
+                textAlign: 'center',
+                pointerEvents: 'none',
+                whiteSpace: 'normal',
+                zIndex: 30,
+                opacity: 0,
+                transition: 'opacity .15s',
+                fontFamily: 'var(--font-sans)',
+                fontWeight: 400,
+              }}
+              className="badge-tip"
+              >
                 {b.beskrivelse}
-              </div>
+              </span>
             </div>
           )
         })}
       </div>
+
+      <style>{`
+        div:hover > .badge-tip { opacity: 1 !important; }
+      `}</style>
     </div>
   )
 }

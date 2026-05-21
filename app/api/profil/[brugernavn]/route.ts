@@ -4,6 +4,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { queryOne } from '@/lib/turso'
 import { hentProfilData } from '@/lib/profil'
 import { beregnBadges } from '@/lib/badges'
+import { listAfsluttedeSæsoner, hentSingleWeekRekord } from '@/lib/historie'
 
 export const revalidate = 3600
 
@@ -25,7 +26,19 @@ export async function GET(
     return NextResponse.json({ error: 'Profil ikke fundet' }, { status: 404 })
   }
 
-  const badges = beregnBadges(profil.sæsoner, profil.sleeperUserId)
+  const afsluttedeSæsoner = listAfsluttedeSæsoner()
+  const ugeRekorder = await Promise.all(
+    afsluttedeSæsoner.flatMap(s => [
+      hentSingleWeekRekord(s, 'bestball'),
+      hentSingleWeekRekord(s, 'managed'),
+      hentSingleWeekRekord(s, 'chopped'),
+    ])
+  )
+  const erUgeRekordHolder = ugeRekorder.some(
+    r => r !== null && r.username === profil.sleeperUsername
+  )
+
+  const badges = beregnBadges(profil.sæsoner, profil.sleeperUserId, { erUgeRekordHolder })
 
   return NextResponse.json({
     displayName: profil.displayName,

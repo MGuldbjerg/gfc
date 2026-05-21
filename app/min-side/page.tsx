@@ -1,7 +1,7 @@
 import { redirect } from 'next/navigation'
 import Link from 'next/link'
 import { auth, signOut } from '@/auth'
-import { queryOne } from '@/lib/turso'
+import { queryOne, execute } from '@/lib/turso'
 import { CURRENT_SEASON } from '@/lib/leagues'
 
 export const dynamic = 'force-dynamic'
@@ -45,6 +45,17 @@ export default async function MinSide() {
     await signOut({ redirectTo: '/' })
   }
 
+  async function frameld() {
+    'use server'
+    const s = await auth()
+    if (!s?.user?.id) return
+    await execute(
+      'DELETE FROM registrations WHERE profile_id = ? AND season = ?',
+      [s.user.id, CURRENT_SEASON]
+    )
+    redirect('/min-side')
+  }
+
   return (
     <div className="gfc-app">
       <div className="container" style={{ maxWidth: 800 }}>
@@ -70,7 +81,7 @@ export default async function MinSide() {
           </div>
         </div>
 
-        {!reg ? <BannerTilmeldSaeson /> : <StatusKort reg={reg} rækker={rækker} />}
+        {!reg ? <BannerTilmeldSaeson /> : <StatusKort reg={reg} rækker={rækker} frameld={frameld} />}
 
         <div style={{ marginTop: 32, display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 12 }}>
           <DashboardKort href="/indstillinger" ix="01" titel="Indstillinger" tekst="Privatliv og nyhedsbrev" />
@@ -127,7 +138,7 @@ function BannerTilmeldSaeson() {
   )
 }
 
-function StatusKort({ reg, rækker }: { reg: RegistrationRow; rækker: string[] }) {
+function StatusKort({ reg, rækker, frameld }: { reg: RegistrationRow; rækker: string[]; frameld: () => Promise<void> }) {
   return (
     <div style={{
       padding: '28px',
@@ -147,12 +158,23 @@ function StatusKort({ reg, rækker }: { reg: RegistrationRow; rækker: string[] 
       <p style={{ color: 'var(--muted)', fontSize: 14, marginTop: 10 }}>
         Rækker: {rækker.length > 0 ? rækker.join(', ') : '—'}
       </p>
-      <p className="eyebrow" style={{ marginTop: 18 }}>
-        Vil du ændre rækker?{' '}
-        <Link href="/saeson/tilmeld" style={{ color: 'var(--accent)' }}>
-          Opdater tilmelding
-        </Link>
-      </p>
+      <div className="eyebrow" style={{ marginTop: 18, display: 'flex', alignItems: 'center', gap: 16 }}>
+        <span>
+          Vil du ændre rækker?{' '}
+          <Link href="/saeson/tilmeld" style={{ color: 'var(--accent)' }}>
+            Opdater tilmelding
+          </Link>
+        </span>
+        <form action={frameld} style={{ marginLeft: 'auto' }}>
+          <button
+            type="submit"
+            className="eyebrow"
+            style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: '0.1em' }}
+          >
+            Frameld mig
+          </button>
+        </form>
+      </div>
     </div>
   )
 }

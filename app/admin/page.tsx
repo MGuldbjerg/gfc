@@ -15,6 +15,7 @@ type Row = {
   profile_id: string
   display_name: string
   username: string
+  nyhedsbrev: number
 }
 
 function parsePreferredTypes(raw: string | null): string[] {
@@ -30,7 +31,7 @@ function parsePreferredTypes(raw: string | null): string[] {
 export default async function AdminPage() {
   const rows = await query<Row>(
     `SELECT r.id, r.season, r.preferred_types, r.assigned_league_name, r.status, r.created_at,
-            p.id AS profile_id, p.display_name, p.username
+            p.id AS profile_id, p.display_name, p.username, p.nyhedsbrev
        FROM registrations r
        JOIN profiles p ON p.id = r.profile_id
       WHERE r.season = ?
@@ -45,6 +46,7 @@ export default async function AdminPage() {
     assigned_league_name: r.assigned_league_name,
     status: r.status,
     created_at: r.created_at,
+    nyhedsbrev: Boolean(r.nyhedsbrev),
     profiles: { id: r.profile_id, display_name: r.display_name, username: r.username },
   }))
 

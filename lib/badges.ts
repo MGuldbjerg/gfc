@@ -2,6 +2,8 @@
 
 export type BadgeType =
   | 'og'
+  | 'champ'
+  | 'peak'
   | 'raketstart'
   | 'ugens_bomber'
   | 'konsistent_konge'
@@ -19,6 +21,20 @@ export interface BadgeDef {
 }
 
 export const BADGES: Record<BadgeType, BadgeDef> = {
+  champ: {
+    id: 'champ',
+    emoji: '🏅',
+    navn: 'Champ',
+    beskrivelse: 'Vundet en sæsong-lang GFC-liga',
+    farve: 'bg-gradient-to-br from-yellow-500 to-yellow-700',
+  },
+  peak: {
+    id: 'peak',
+    emoji: '⚡',
+    navn: 'Peak',
+    beskrivelse: 'Højeste enkelt-uge score i en GFC-liga nogensinde',
+    farve: 'bg-gradient-to-br from-sky-500 to-blue-700',
+  },
   og: {
     id: 'og',
     emoji: '🔥',
@@ -83,7 +99,8 @@ import { ALL_LEAGUES } from './leagues'
 
 export function beregnBadges(
   sæsoner: SæsonData[],
-  sleeperUserId: string
+  sleeperUserId: string,
+  opts?: { erUgeRekordHolder?: boolean }
 ): BadgeType[] {
   const earned = new Set<BadgeType>()
 
@@ -97,7 +114,13 @@ export function beregnBadges(
   // Veteran — 2+ sæsoner
   if (sæsonÅr.length >= 2) earned.add('saeson_veteran')
 
+  // Peak — all-time single-week record holder in any league (cross-player, passed from caller)
+  if (opts?.erUgeRekordHolder) earned.add('peak')
+
   for (const s of sæsoner) {
+    // Champ — vandt sin liga
+    if (s.rangPlacering === 1) earned.add('champ')
+
     // Top 3 i liga
     if (s.rangPlacering !== null && s.rangPlacering <= 3) earned.add('saesontop3')
 

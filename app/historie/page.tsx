@@ -241,7 +241,11 @@ function SæsonKolonne({
                     {rc && <span className="rmark" aria-hidden />}
                     {rc ? '' : rank}
                   </td>
-                  <td className="name">{entry.displayName}</td>
+                  <td className="name">
+                    <Link href={`/profil/${entry.username}`} style={{ color: 'inherit', textDecoration: 'none' }}>
+                      {entry.displayName}
+                    </Link>
+                  </td>
                   {visWins && <td className="c">{entry.wins ?? 0}</td>}
                   <td className="pts">{entry.totalPoints.toFixed(1)}</td>
                 </tr>
@@ -313,7 +317,11 @@ async function AllTimeView() {
               {bedsteSæsoner.map((r, i) => (
                 <tr key={`${r.username}-${r.season}-${r.type}`}>
                   <td className="rank c">{i + 1}</td>
-                  <td className="name">{r.displayName}</td>
+                  <td className="name">
+                    <Link href={`/profil/${r.username}`} style={{ color: 'inherit', textDecoration: 'none' }}>
+                      {r.displayName}
+                    </Link>
+                  </td>
                   <td>{r.season}</td>
                   <td>{TYPE_LABEL[r.type]}</td>
                   <td className="pts">{r.points.toFixed(1)}</td>
@@ -343,7 +351,11 @@ async function AllTimeView() {
               {flesteSæsoner.map((e, i) => (
                 <tr key={e.username}>
                   <td className="rank c">{i + 1}</td>
-                  <td className="name">{e.displayName}</td>
+                  <td className="name">
+                    <Link href={`/profil/${e.username}`} style={{ color: 'inherit', textDecoration: 'none' }}>
+                      {e.displayName}
+                    </Link>
+                  </td>
                   <td className="r">{e.appearances}</td>
                 </tr>
               ))}
@@ -398,7 +410,11 @@ function AllTimeKolonne({
             {entries.slice(0, 25).map((entry, i) => (
               <tr key={entry.username}>
                 <td className="rank c">{i + 1}</td>
-                <td className="name">{entry.displayName}</td>
+                <td className="name">
+                  <Link href={`/profil/${entry.username}`} style={{ color: 'inherit', textDecoration: 'none' }}>
+                    {entry.displayName}
+                  </Link>
+                </td>
                 <td className="c">{entry.seasonsPlayed}</td>
                 {visWins && <td className="c">{entry.totalWins}</td>}
                 <td className="r">{entry.gennemsnitPerSæson.toFixed(1)}</td>

@@ -1,5 +1,5 @@
 // Creates or updates the current-season registration for the logged-in user.
-// The user must already have a profile (created via /api/profil/opret).
+// DELETE removes the registration entirely (cancel signup).
 
 import { NextRequest, NextResponse } from 'next/server'
 import { randomUUID } from 'node:crypto'
@@ -24,11 +24,13 @@ export async function POST(req: NextRequest) {
     [session.user.id]
   )
   if (!profile) {
-    return NextResponse.json(
-      { error: 'Du skal oprette en profil først.' },
-      { status: 400 }
-    )
+    return NextResponse.json({ error: 'Du skal oprette en profil først.' }, { status: 400 })
   }
+
+  const existing = await queryOne<{ id: string }>(
+    'SELECT id FROM registrations WHERE profile_id = ? AND season = ?',
+    [session.user.id, CURRENT_SEASON]
+  )
 
   await execute(
     `INSERT INTO registrations (id, profile_id, season, preferred_types, status)
@@ -39,12 +41,28 @@ export async function POST(req: NextRequest) {
     [randomUUID(), session.user.id, CURRENT_SEASON, JSON.stringify(valgteRækker)]
   )
 
-  // Best-effort welcome email — non-blocking.
-  sendVelkomstMail({
-    email: session.user.email,
-    displayName: profile.display_name,
-    sæson: CURRENT_SEASON,
-  }).catch(err => console.error('Brevo-fejl:', err))
+  // Only send welcome mail on first registration, not on updates.
+  if (!existing) {
+    sendVelkomstMail({
+      email: session.user.email,
+      displayName: profile.display_name,
+      sæson: CURRENT_SEASON,
+    }).catch(err => console.error('Brevo-fejl:', err))
+  }
+
+  return NextResponse.json({ ok: true })
+}
+
+export async function DELETE() {
+  const session = await auth()
+  if (!session?.user?.id) {
+    return NextResponse.json({ error: 'Ikke logget ind' }, { status: 401 })
+  }
+
+  await execute(
+    'DELETE FROM registrations WHERE profile_id = ? AND season = ?',
+    [session.user.id, CURRENT_SEASON]
+  )
 
   return NextResponse.json({ ok: true })
 }
