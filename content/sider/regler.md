@@ -38,7 +38,7 @@ Som noget nyt i 2026 introducerer vi Chopped-rækken. Formatet har eksisteret no
 
 Slutspillet vil foregå sådan, at når ligaerne kun har 2 hold tilbage, vil den samlede vinder være det tilbageværende hold, der scorer flest point. Altså den ligavinder, der scorer højest i finaleugen. 
 
-Mulige ændringer: 16/18 hold i stedet for 12 i Chopped.
+*Mulige ændringer: 16/18 hold i stedet for 12 i Chopped.*
 
 - Guillotine-format. Den deltager med lavest score hver uge ryger ud.
 - Sidste mand står tilbage som vinder.
