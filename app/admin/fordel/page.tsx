@@ -9,10 +9,12 @@ type DeltagerOption = {
   profile_id: string
   display_name: string
   username: string
+  er_amerikansk_vip?: boolean
 }
 
 export default function FordelPage() {
   const [ligaStørrelse, setLigaStørrelse] = useState(12)
+  const [choppedStørrelse, setChoppedStørrelse] = useState(18)
   const [resultat, setResultat] = useState<FordelingsResultat | null>(null)
   const [loading, setLoading] = useState(false)
   const [bekræftet, setBekræftet] = useState(false)
@@ -55,7 +57,7 @@ export default function FordelPage() {
     const res = await fetch('/api/admin/fordel/preview', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ ligaStørrelse, pins }),
+      body: JSON.stringify({ ligaStørrelse, choppedStørrelse, pins }),
     })
     const data = await res.json()
     setResultat(data)
@@ -114,10 +116,19 @@ export default function FordelPage() {
       {/* Settings */}
       <div className="lb-col" style={{ marginBottom: 16, display: 'flex', flexWrap: 'wrap', alignItems: 'flex-end', gap: 24 }}>
         <div>
-          <label className="gfc-label">Hold per liga</label>
+          <label className="gfc-label">Hold per liga (BB/Managed)</label>
           <input
             type="number" min={8} max={20} value={ligaStørrelse}
             onChange={e => setLigaStørrelse(Number(e.target.value))}
+            className="gfc-input"
+            style={{ width: 96 }}
+          />
+        </div>
+        <div>
+          <label className="gfc-label">Hold per liga (Chopped)</label>
+          <input
+            type="number" min={10} max={30} value={choppedStørrelse}
+            onChange={e => setChoppedStørrelse(Number(e.target.value))}
             className="gfc-input"
             style={{ width: 96 }}
           />
@@ -239,6 +250,9 @@ export default function FordelPage() {
                         }}>
                           <span className="eyebrow" style={{ width: 20 }}>{i + 1}.</span>
                           <span style={{ flex: 1, fontWeight: 500, color: 'var(--ink)' }}>{d.displayName}</span>
+                          {d.erAmerikanskVip && (
+                            <span title="Amerikansk VIP" style={{ fontSize: 13 }}>🇺🇸</span>
+                          )}
                           {d.pinned && (
                             <span title="VIP-pin" style={{ color: 'var(--accent)', fontSize: 11 }}>★</span>
                           )}

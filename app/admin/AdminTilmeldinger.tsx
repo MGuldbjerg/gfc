@@ -12,6 +12,8 @@ interface Tilmelding {
   status: string
   created_at: string
   nyhedsbrev: boolean
+  erAmerikanskVip: boolean
+  undgaaAmerikanskVip: boolean
   profiles: Profil | Profil[] | null
 }
 
@@ -25,6 +27,19 @@ const FILTERKNAPPER = ['alle', 'bestball', 'managed', 'chopped']
 export default function AdminTilmeldinger({ tilmeldinger }: { tilmeldinger: Tilmelding[] }) {
   const [filter, setFilter] = useState<string>('alle')
   const [søgning, setSøgning] = useState('')
+  const [vipState, setVipState] = useState<Record<string, boolean>>(
+    Object.fromEntries(tilmeldinger.map(t => [getProfil(t.profiles)?.id ?? '', t.erAmerikanskVip]))
+  )
+
+  async function toggleVip(profileId: string, current: boolean) {
+    const næste = !current
+    setVipState(prev => ({ ...prev, [profileId]: næste }))
+    await fetch('/api/admin/profil/vip', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ profileId, erAmerikanskVip: næste }),
+    })
+  }
 
   const filtrerede = tilmeldinger.filter(t => {
     const matchFilter = filter === 'alle' || t.preferred_types?.includes(filter)
@@ -84,13 +99,15 @@ export default function AdminTilmeldinger({ tilmeldinger }: { tilmeldinger: Tilm
               <th>Liga</th>
               <th>Status</th>
               <th className="c">Mail</th>
+              <th className="c">🇺🇸 VIP</th>
+              <th className="c">Undgå 🇺🇸</th>
               <th>Tilmeldt</th>
             </tr>
           </thead>
           <tbody>
             {filtrerede.length === 0 ? (
               <tr>
-                <td colSpan={7} style={{ textAlign: 'center', padding: '32px', color: 'var(--muted)' }}>
+                <td colSpan={9} style={{ textAlign: 'center', padding: '32px', color: 'var(--muted)' }}>
                   Ingen tilmeldinger
                 </td>
               </tr>
@@ -120,6 +137,24 @@ export default function AdminTilmeldinger({ tilmeldinger }: { tilmeldinger: Tilm
                   </td>
                   <td className="c" style={{ fontSize: 16 }} title={t.nyhedsbrev ? 'Tilmeldt nyhedsbrev' : 'Frameldt nyhedsbrev'}>
                     {t.nyhedsbrev ? '✓' : '–'}
+                  </td>
+                  <td className="c">
+                    {profil && (
+                      <button
+                        onClick={() => toggleVip(profil.id, vipState[profil.id] ?? false)}
+                        title={vipState[profil.id] ? 'Marker som ikke-VIP' : 'Marker som amerikansk VIP'}
+                        style={{
+                          background: 'none', border: 'none', cursor: 'pointer',
+                          fontSize: 16, opacity: vipState[profil.id] ? 1 : 0.25,
+                          padding: 0,
+                        }}
+                      >
+                        🇺🇸
+                      </button>
+                    )}
+                  </td>
+                  <td className="c" style={{ fontSize: 14, color: t.undgaaAmerikanskVip ? 'var(--accent)' : 'var(--muted)', opacity: t.undgaaAmerikanskVip ? 1 : 0.3 }}>
+                    {t.undgaaAmerikanskVip ? '✓' : '–'}
                   </td>
                   <td className="mono" style={{ fontSize: 11 }}>
                     {new Date(t.created_at).toLocaleDateString('da-DK')}

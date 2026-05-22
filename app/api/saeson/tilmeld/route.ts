@@ -14,7 +14,8 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Ikke logget ind' }, { status: 401 })
   }
 
-  const { valgteRækker } = await req.json()
+  const body = await req.json()
+  const { valgteRækker, undgaaAmerikanskVip = false } = body
   if (!Array.isArray(valgteRækker) || valgteRækker.length === 0) {
     return NextResponse.json({ error: 'Vælg mindst én række' }, { status: 400 })
   }
@@ -33,12 +34,13 @@ export async function POST(req: NextRequest) {
   )
 
   await execute(
-    `INSERT INTO registrations (id, profile_id, season, preferred_types, status)
-     VALUES (?, ?, ?, ?, 'registered')
+    `INSERT INTO registrations (id, profile_id, season, preferred_types, status, undgaa_amerikansk_vip)
+     VALUES (?, ?, ?, ?, 'registered', ?)
      ON CONFLICT(profile_id, season) DO UPDATE SET
        preferred_types = excluded.preferred_types,
-       status = 'registered'`,
-    [randomUUID(), session.user.id, CURRENT_SEASON, JSON.stringify(valgteRækker)]
+       status = 'registered',
+       undgaa_amerikansk_vip = excluded.undgaa_amerikansk_vip`,
+    [randomUUID(), session.user.id, CURRENT_SEASON, JSON.stringify(valgteRækker), undgaaAmerikanskVip ? 1 : 0]
   )
 
   // Only send welcome mail on first registration, not on updates.

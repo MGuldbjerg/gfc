@@ -11,6 +11,7 @@ CREATE TABLE IF NOT EXISTS profiles (
   vis_sleeper_username INTEGER NOT NULL DEFAULT 1,        -- 0/1 boolean (Phase 3.1)
   vis_badges INTEGER NOT NULL DEFAULT 1,                  -- 0/1 boolean (Phase 3.1)
   nyhedsbrev INTEGER NOT NULL DEFAULT 0,                  -- 0/1 boolean (Phase 3.1)
+  er_amerikansk_vip INTEGER NOT NULL DEFAULT 0,           -- 0/1 — admin-set tag for US industry guests
   created_at TEXT NOT NULL DEFAULT (datetime('now')),
   updated_at TEXT NOT NULL DEFAULT (datetime('now'))
 );
@@ -24,6 +25,7 @@ CREATE TABLE IF NOT EXISTS registrations (
   assigned_league_id TEXT,                                -- Sleeper league id after assignment
   assigned_league_name TEXT,                              -- 'BB1', 'M3' ...
   status TEXT NOT NULL DEFAULT 'registered',              -- registered | assigned | active
+  undgaa_amerikansk_vip INTEGER NOT NULL DEFAULT 0,       -- 0/1 — participant prefers no US VIP in league
   created_at TEXT NOT NULL DEFAULT (datetime('now')),
   UNIQUE(profile_id, season)
 );

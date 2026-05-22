@@ -15,6 +15,7 @@ const PRIORITET_LABEL = ['1. prioritet', '2. prioritet', '3. prioritet']
 export default function SaesonTilmeldPage() {
   const router = useRouter()
   const [prioritet, setPrioritet] = useState<string[]>(['bestball', 'managed'])
+  const [undgaaAmerikanskVip, setUndgaaAmerikanskVip] = useState(false)
   const [fejl, setFejl] = useState('')
   const [loading, setLoading] = useState(false)
 
@@ -40,7 +41,7 @@ export default function SaesonTilmeldPage() {
     const res = await fetch('/api/saeson/tilmeld', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ valgteRækker: prioritet }),
+      body: JSON.stringify({ valgteRækker: prioritet, undgaaAmerikanskVip }),
     })
     setLoading(false)
     if (!res.ok) {
@@ -127,6 +128,18 @@ export default function SaesonTilmeldPage() {
               )
             })}
           </div>
+
+          <label className="gfc-toggle" style={{ marginTop: 4 }}>
+            <input
+              type="checkbox"
+              checked={undgaaAmerikanskVip}
+              onChange={e => setUndgaaAmerikanskVip(e.target.checked)}
+            />
+            <div>
+              <div className="tgl-label">Ønsker ikke liga med amerikansk VIP</div>
+              <div className="tgl-desc">Vi inviterer sommetider gæster fra den amerikanske fantasy-industri. Kryds af her, hvis du foretrækker en liga kun med danskere — f.eks. grundet tidsforskellen eller sproget.</div>
+            </div>
+          </label>
 
           <button
             type="submit"

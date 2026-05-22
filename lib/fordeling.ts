@@ -10,7 +10,9 @@ export interface Deltager {
   // preferences sort first (less flexibility → higher priority), tiebroken by
   // their personal rank of that type (lower index = higher priority).
   preferredTypes: LeagueType[]
-  pinned?: boolean  // set in results for VIP-pinned people
+  erAmerikanskVip?: boolean       // admin-set: this person is a US industry guest
+  undgaaAmerikanskVip?: boolean   // user preference: don't place in same league as US VIP
+  pinned?: boolean                // set in results for VIP-pinned people
 }
 
 export interface Pin {
@@ -57,6 +59,17 @@ function næsteNavn(type: LeagueType, existing: Set<string>): string {
   return `${præfiks}${i}`
 }
 
+// Tracks which leagues contain an American VIP or someone who wants to avoid one.
+// Used to enforce the compatibility constraint during distribution.
+const ligaHarAmerikanskVip = new Map<string, boolean>()
+const ligaHarUndgaaAmerikanskVip = new Map<string, boolean>()
+
+function isCompatible(ligaNavn: string, d: Deltager): boolean {
+  if (d.erAmerikanskVip && ligaHarUndgaaAmerikanskVip.get(ligaNavn)) return false
+  if (d.undgaaAmerikanskVip && ligaHarAmerikanskVip.get(ligaNavn)) return false
+  return true
+}
+
 // Fills `people` into leagues of `type`. Uses existing VIP-seeded leagues first
 // (least-full first for even distribution), then creates new leagues as needed.
 function distributeIntoLeagues(
@@ -67,21 +80,26 @@ function distributeIntoLeagues(
 ): void {
   if (people.length === 0) return
 
-  const existing = [...ligaMap.values()].filter(l => l.type === type)
+  const existing = () => [...ligaMap.values()].filter(l => l.type === type)
 
   for (const d of shuffle(people)) {
-    // Always assign to the least-full league that still has room
-    existing.sort((a, b) => a.deltagere.length - b.deltagere.length)
-    const target = existing.find(l => l.deltagere.length < ligaStørrelse)
+    const candidates = existing()
+      .filter(l => l.deltagere.length < ligaStørrelse && isCompatible(l.ligaNavn, d))
+      .sort((a, b) => a.deltagere.length - b.deltagere.length)
+
+    const target = candidates[0]
 
     if (target) {
       target.deltagere.push(d)
+      if (d.erAmerikanskVip) ligaHarAmerikanskVip.set(target.ligaNavn, true)
+      if (d.undgaaAmerikanskVip) ligaHarUndgaaAmerikanskVip.set(target.ligaNavn, true)
     } else {
-      // All existing leagues are full — create a new one
+      // No compatible league with room — create a new one
       const navn = næsteNavn(type, new Set(ligaMap.keys()))
       const ny: LigaForslag = { ligaNavn: navn, type, deltagere: [d] }
       ligaMap.set(navn, ny)
-      existing.push(ny)
+      if (d.erAmerikanskVip) ligaHarAmerikanskVip.set(navn, true)
+      if (d.undgaaAmerikanskVip) ligaHarUndgaaAmerikanskVip.set(navn, true)
     }
   }
 }
@@ -89,8 +107,13 @@ function distributeIntoLeagues(
 export function beregnFordeling(
   alleDeltagere: Deltager[],
   ligaStørrelse = 12,
-  pins: Pin[] = []
+  pins: Pin[] = [],
+  choppedStørrelse = 18
 ): FordelingsResultat {
+  // Reset per-call tracking state
+  ligaHarAmerikanskVip.clear()
+  ligaHarUndgaaAmerikanskVip.clear()
+
   const deltagerMap = new Map(alleDeltagere.map(d => [d.profileId, d]))
   const ligaMap = new Map<string, LigaForslag>()
 
@@ -107,7 +130,10 @@ export function beregnFordeling(
     if (!ligaMap.has(pin.ligaNavn)) {
       ligaMap.set(pin.ligaNavn, { ligaNavn: pin.ligaNavn, type, deltagere: [] })
     }
-    ligaMap.get(pin.ligaNavn)!.deltagere.push({ ...d, pinned: true })
+    const pinned = { ...d, pinned: true }
+    ligaMap.get(pin.ligaNavn)!.deltagere.push(pinned)
+    if (pinned.erAmerikanskVip) ligaHarAmerikanskVip.set(pin.ligaNavn, true)
+    if (pinned.undgaaAmerikanskVip) ligaHarUndgaaAmerikanskVip.set(pin.ligaNavn, true)
     vipPinnedType.set(pin.profileId, type)
   }
 
@@ -118,6 +144,7 @@ export function beregnFordeling(
 
   // Step 2: For each type independently, assign the regular (non-VIP) pool.
   for (const type of TYPES) {
+    const størrelse = type === 'chopped' ? choppedStørrelse : ligaStørrelse
     const vipCount = inType.get(type)!.size
 
     // Everyone who wants this type and is NOT already VIP-pinned into it
@@ -133,11 +160,11 @@ export function beregnFordeling(
       return a.preferredTypes.indexOf(type) - b.preferredTypes.indexOf(type)
     })
 
-    // Capacity: floor((VIPs + regular candidates) / ligaStørrelse) leagues in total.
+    // Capacity: floor((VIPs + regular candidates) / størrelse) leagues in total.
     // VIPs always get their spots; the floor applies to the regular pool around them.
     const totalWanting = vipCount + candidates.length
-    const totalLeagues = Math.floor(totalWanting / ligaStørrelse)
-    const regularCapacity = Math.max(0, totalLeagues * ligaStørrelse - vipCount)
+    const totalLeagues = Math.floor(totalWanting / størrelse)
+    const regularCapacity = Math.max(0, totalLeagues * størrelse - vipCount)
 
     // Randomly shuffle within each priority tier so placement is fair among equals.
     // The sort above is stable, so we shuffle within tiers by re-sorting after per-tier shuffle.
@@ -145,7 +172,7 @@ export function beregnFordeling(
     const toAssign = tiered.slice(0, regularCapacity)
     // tiered[regularCapacity..] are bumped from this type — they may still play other types.
 
-    distributeIntoLeagues(toAssign, type, ligaMap, ligaStørrelse)
+    distributeIntoLeagues(toAssign, type, ligaMap, størrelse)
     for (const d of toAssign) inType.get(type)!.add(d.profileId)
   }
 

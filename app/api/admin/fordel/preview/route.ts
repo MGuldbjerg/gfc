@@ -14,6 +14,8 @@ type TilmeldingRow = {
   profile_id: string
   display_name: string
   username: string
+  er_amerikansk_vip: number
+  undgaa_amerikansk_vip: number
 }
 
 export async function POST(req: NextRequest) {
@@ -22,14 +24,16 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Ikke autoriseret' }, { status: 401 })
   }
 
-  const { ligaStørrelse = 12, pins = [] } = await req.json().catch(() => ({}))
+  const { ligaStørrelse = 12, choppedStørrelse = 18, pins = [] } = await req.json().catch(() => ({}))
 
   const tilmeldinger = await query<TilmeldingRow>(
     `SELECT r.id AS registration_id,
             r.preferred_types,
+            r.undgaa_amerikansk_vip,
             p.id AS profile_id,
             p.display_name,
-            p.username
+            p.username,
+            p.er_amerikansk_vip
        FROM registrations r
        JOIN profiles p ON p.id = r.profile_id
       WHERE r.season = ? AND r.status = 'registered'`,
@@ -46,6 +50,8 @@ export async function POST(req: NextRequest) {
     sleeperUsername: t.username,
     registrationId: t.registration_id,
     preferredTypes: parsePreferredTypes(t.preferred_types),
+    erAmerikanskVip: Boolean(t.er_amerikansk_vip),
+    undgaaAmerikanskVip: Boolean(t.undgaa_amerikansk_vip),
   }))
 
   const validPins: Pin[] = Array.isArray(pins)
@@ -56,7 +62,7 @@ export async function POST(req: NextRequest) {
       )
     : []
 
-  const resultat = beregnFordeling(deltagere, ligaStørrelse, validPins)
+  const resultat = beregnFordeling(deltagere, ligaStørrelse, validPins, choppedStørrelse)
   return NextResponse.json(resultat)
 }
 
