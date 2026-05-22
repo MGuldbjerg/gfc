@@ -83,18 +83,20 @@ function distributeIntoLeagues(
   const existing = () => [...ligaMap.values()].filter(l => l.type === type)
 
   for (const d of shuffle(people)) {
-    const candidates = existing()
-      .filter(l => l.deltagere.length < ligaStørrelse && isCompatible(l.ligaNavn, d))
-      .sort((a, b) => a.deltagere.length - b.deltagere.length)
+    const withRoom = existing().filter(l => l.deltagere.length < ligaStørrelse)
 
-    const target = candidates[0]
+    // Prefer compatible leagues; fall back to any league with room rather than
+    // creating a new under-filled one (soft constraint — avoids blocking others).
+    const target =
+      withRoom.filter(l => isCompatible(l.ligaNavn, d)).sort((a, b) => a.deltagere.length - b.deltagere.length)[0] ??
+      withRoom.sort((a, b) => a.deltagere.length - b.deltagere.length)[0]
 
     if (target) {
       target.deltagere.push(d)
       if (d.erAmerikanskVip) ligaHarAmerikanskVip.set(target.ligaNavn, true)
       if (d.undgaaAmerikanskVip) ligaHarUndgaaAmerikanskVip.set(target.ligaNavn, true)
     } else {
-      // No compatible league with room — create a new one
+      // All existing leagues are full — create a new one
       const navn = næsteNavn(type, new Set(ligaMap.keys()))
       const ny: LigaForslag = { ligaNavn: navn, type, deltagere: [d] }
       ligaMap.set(navn, ny)
