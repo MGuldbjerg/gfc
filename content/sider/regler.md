@@ -32,7 +32,7 @@ I Managed-rækken spilles der et grundspil på 14 uger, hvorefter de 3 bedste ho
 - Byttehandler og waivers er tilladt.
 - Wins + point afgør placeringen.
 
-### Chopped *(ny i 2026 - dette kan ændres, når der eksperimenteres lidt med indstillingerne i Sleeper)*
+### Chopped *(ny i 2026 - nedenstående kan ændres, når der eksperimenteres lidt med indstillingerne i Sleeper, men det bør være retvisende)*
 
 Som noget nyt i 2026 introducerer vi Chopped-rækken. Formatet har eksisteret nogle år uden for Sleeper, men nu har platformen fået det med, så vi åbner for muligheden denne gang. Formatet er på en måde en blanding af bestball og managed, fordi du har waivers, men du har ingen head to head matchup. Du spiller hver uge alle mod alle, men det hold der scorer færrest point i hver uge bliver elimineret, og alle spillere på det eliminerede holds roster ryger på waivers, hvor de resterende hold kan samle dem op. 
 
@@ -45,18 +45,21 @@ Slutspillet vil foregå sådan, at når ligaerne kun har 2 hold tilbage, vil den
 
 ## Drafts
 
-- **Slow drafts** starter sidste weekend i juni / første weekend i juli.
+- **Slow drafts** starter sidste weekend i juni / første weekend i juli. Præcis dato kommer, når vi er tættere på.
 - 8 timer per pick. Pause om natten (typisk 22:00–08:00).
 - Vær opmærksom på din Sleeper-app, så du ikke autodrafter. Appen har nogle gange problemer med notifikationer, når der er allerflest drafts verden over.
 
 ## Præmier
 
-- Sponsordoneret (bolde, trøjer, abonnementer).
-- **Sæsonens højeste enkeltscore** i hver række får sin egen præmie.
+- Det er mit mål altid at have præmier, og du kan se status på [præmier](/sponsorer) ved at gå til siden om dette.
+- Antallet og typen af præmier vil diktere, hvordan præmiestrukturen vil blive. Jeg regner med at kunne melde det endeligt ud, når vi er omkring starten af drafts.
+- Jeg forventer, at der vil være præmier til vinderne af alle rækker samt de højeste scorer i en enkelt uge i hver række. Dog er det som nævnt ovenfor dikteret af de præmier, der er til rådighed.
 
 ## Fairplay
 
-- Hold dit hold opdateret og vær aktiv. Inaktive deltagere ødelægger oplevelsen for de andre i ligaen.
+- Hold dit hold opdateret og vær aktiv. Så er det sjovest for alle. 
 - Vær venlig i chatten — det her er en hobby, og alle skal have det sjovt.
+- Som udgangspunkt er jeg rimelig large om trades i managed, men jeg forbeholder mig retten til at lade trades gå tilbage, hvis der er bred enighed i ligaen om, at den er meget ensidig.
+- Jeg forbeholder mig retten til at smide deltagere ud uden forklaring, prøvning af udsmidelsen eller andet. Dette kan fx være på grund af upassende opførsel, forsøg på snyd eller andet.
 
-Spørgsmål? Skriv til Mikkel på Facebook-siden *Guldbjergs Fantasy Challenge*.
+Spørgsmål? Skriv til Mikkel på Facebook-siden *Guldbjergs Fantasy Challenge* eller på Sleeper til @MGuldbjerg.
