@@ -1,29 +1,17 @@
-# Sponsorer
+# Sponsorer og præmier
 
-Guldbjergs Fantasy Challenge er kun mulig takket være vores sponsorer. De doner præmier til vores deltagere — vis dem støtte tilbage, når du har brug for fantasy-værktøjer eller udstyr.
+Præmier er med til at løfte oplevelsen fra en hyggekonkurrence til noget større. Derfor sigter jeg efter at have præmier hvert år.
 
-## 2025-sæsonens sponsorer
+Som regel vil jeg gerne have, at præmierne har noget med football at gøre, og tidligere har det været bolde, NFL-hoodies, abonnementer til fantasy football-sites og lignende. 
 
-### MVP Sports Gear
+OBS: Jeg gør opmærksom på, at jeg intet ansvar har for, om præmiesponsoren rent faktisk leverer en præmie. Det har jeg ikke ressourcer til. Jeg skaffer tilsagn og formidler kontakt mellem vindere og sponsorer, men mit ansvar stopper her. 
 
-Danmarks udvalg af amerikansk-football-udstyr. Bolde, jerseys, gear.
+## Præmier og sponsorer i 2026
 
-*Tilføj link og beskrivelse her.*
-
-### Lateround.com
-
-Fantasy football-værktøjer og analyser med fokus på de sene draftrunder.
-
-*Tilføj link og beskrivelse her.*
-
-### Footballguys.com
-
-En af USA's mest anerkendte fantasy football-platforme — rankings, projections og artikler.
-
-*Tilføj link og beskrivelse her.*
+*Bliver tilføjet i takt med, de bliver bekræftet*
 
 ---
 
 ## Vil du sponsorere GFC 2026?
 
-Vi leder efter sponsorer der kan donere præmier eller services til vores ~120 deltagere. Skriv til Mikkel på Facebook-siden *Guldbjergs Fantasy Challenge*.
+Hvis du kunne tænke dig at lægge en præmie i puljen, så skriv til Mikkel på Facebook-siden *Guldbjergs Fantasy Challenge*, eller gennem Sleeper-platformen til @MGuldbjerg.
