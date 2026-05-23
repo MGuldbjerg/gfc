@@ -37,6 +37,7 @@ export async function POST(req: NextRequest) {
     .map((r) => (r as PromiseRejectedResult).reason?.message ?? String((r as PromiseRejectedResult).reason))
 
   revalidatePath('/leaderboard')
+  revalidatePath('/historie')
 
   return NextResponse.json({
     ok: fejl.length === 0,
