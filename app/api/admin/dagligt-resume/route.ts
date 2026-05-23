@@ -4,6 +4,8 @@
 
 import { NextRequest, NextResponse } from 'next/server'
 import { query } from '@/lib/turso'
+import { emailBaseLayout, EMAIL_COLORS } from '@/lib/brevo'
+import { SITE_URL } from '@/lib/site-url'
 
 const BREVO_BASE = 'https://api.brevo.com/v3'
 
@@ -103,43 +105,34 @@ function buildDigestHtml(profiler: NyProfilRow[], tilmeldinger: NyTilmeldingRow[
   }
 
   const sektion = (titel: string, indhold: string) =>
-    `<h3 style="margin:24px 0 8px;color:#fff;font-size:16px;">${titel}</h3>${indhold}`
+    `<h3 style="margin:24px 0 10px;color:${EMAIL_COLORS.ink};font-size:13px;letter-spacing:0.06em;text-transform:uppercase;font-weight:600;">${titel}</h3>${indhold}`
 
   const profilListe = profiler.length === 0
-    ? '<p style="color:#94a3b8;margin:0;">Ingen.</p>'
-    : `<ul style="margin:0;padding-left:18px;color:#e2e8f0;">` +
+    ? `<p style="color:${EMAIL_COLORS.muted};margin:0;font-size:14px;">Ingen.</p>`
+    : `<ul style="margin:0;padding-left:18px;color:${EMAIL_COLORS.ink};font-size:14px;line-height:1.7;">` +
       profiler.map(p =>
-        `<li>${escapeHtml(p.display_name)} (@${escapeHtml(p.username)})${p.email ? ` · ${escapeHtml(p.email)}` : ''}</li>`
+        `<li>${escapeHtml(p.display_name)} <span style="color:${EMAIL_COLORS.muted};">(@${escapeHtml(p.username)})${p.email ? ` · ${escapeHtml(p.email)}` : ''}</span></li>`
       ).join('') +
       `</ul>`
 
   const tilmeldListe = tilmeldinger.length === 0
-    ? '<p style="color:#94a3b8;margin:0;">Ingen.</p>'
-    : `<ul style="margin:0;padding-left:18px;color:#e2e8f0;">` +
+    ? `<p style="color:${EMAIL_COLORS.muted};margin:0;font-size:14px;">Ingen.</p>`
+    : `<ul style="margin:0;padding-left:18px;color:${EMAIL_COLORS.ink};font-size:14px;line-height:1.7;">` +
       tilmeldinger.map(t =>
-        `<li>${escapeHtml(t.display_name)} → ${escapeHtml(t.season)} (${escapeHtml(rækker(t.preferred_types))})</li>`
+        `<li>${escapeHtml(t.display_name)} → ${escapeHtml(t.season)} <span style="color:${EMAIL_COLORS.muted};">(${escapeHtml(rækker(t.preferred_types))})</span></li>`
       ).join('') +
       `</ul>`
 
-  return `<!DOCTYPE html>
-<html lang="da"><body style="margin:0;padding:0;background:#0f172a;font-family:system-ui,sans-serif;">
-<table width="100%" cellpadding="0" cellspacing="0"><tr><td align="center" style="padding:32px 16px;">
-<table width="600" cellpadding="0" cellspacing="0" style="background:#1e293b;border-radius:12px;max-width:600px;width:100%;">
-  <tr><td style="background:linear-gradient(135deg,#4f46e5,#7c3aed);padding:24px;">
-    <h1 style="margin:0;color:#fff;font-size:18px;font-weight:600;">GFC — Daglig aktivitet</h1>
-    <p style="margin:4px 0 0;color:#c7d2fe;font-size:13px;">Sidste 24 timer</p>
-  </td></tr>
-  <tr><td style="padding:24px;color:#e2e8f0;">
+  return emailBaseLayout(`
+    <h2 style="margin:16px 0 4px;color:${EMAIL_COLORS.ink};font-size:22px;font-weight:700;letter-spacing:-0.02em;">Daglig aktivitet</h2>
+    <p style="margin:0 0 4px;font-size:13px;color:${EMAIL_COLORS.muted};">Sidste 24 timer</p>
     ${sektion(`Nye profiler (${profiler.length})`, profilListe)}
     ${sektion(`Nye sæson-tilmeldinger (${tilmeldinger.length})`, tilmeldListe)}
-    <p style="margin:24px 0 0;color:#94a3b8;font-size:13px;">
+    <p style="margin:28px 0 0;color:${EMAIL_COLORS.muted};font-size:13px;">
       Se hele oversigten på
-      <a href="https://gfc-seven.vercel.app/admin" style="color:#818cf8;">/admin</a>.
+      <a href="${SITE_URL}/admin" style="color:${EMAIL_COLORS.accent};text-decoration:none;font-weight:600;">/admin</a>.
     </p>
-  </td></tr>
-</table>
-</td></tr></table>
-</body></html>`
+  `)
 }
 
 function escapeHtml(s: string): string {

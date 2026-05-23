@@ -1,5 +1,7 @@
 // Brevo e-mail og kontakthåndtering
 
+import { SITE_URL } from './site-url'
+
 const API_KEY = process.env.BREVO_API_KEY!
 const BASE = 'https://api.brevo.com/v3'
 const GFC_LIST_ID = Number(process.env.BREVO_LIST_ID ?? '2') // Standard GFC-deltagerliste
@@ -123,25 +125,35 @@ export async function sendLigaTildeling({
 }
 
 // --- E-mail-skabeloner -------------------------------------------------------
+// Light design matching the live site. Uses hex colors (oklch not supported in
+// most email clients) and system fonts (web fonts often blocked).
 
-function baseLayout(indhold: string) {
+const COLORS = {
+  bg: '#faf8f5',      // warm bone
+  panel: '#ffffff',
+  ink: '#1f1d1a',
+  muted: '#85807a',
+  line: '#e5e2dd',
+  accent: '#d63b1f',  // signal red
+}
+
+function emailBaseLayout(indhold: string, domæneVisning = 'fantasychallenge.dk') {
   return `<!DOCTYPE html>
 <html lang="da">
 <head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"></head>
-<body style="margin:0;padding:0;background:#0f172a;font-family:system-ui,sans-serif;">
-  <table width="100%" cellpadding="0" cellspacing="0">
-    <tr><td align="center" style="padding:40px 16px;">
-      <table width="600" cellpadding="0" cellspacing="0" style="background:#1e293b;border-radius:12px;overflow:hidden;max-width:600px;width:100%;">
+<body style="margin:0;padding:0;background:${COLORS.bg};font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;color:${COLORS.ink};">
+  <table width="100%" cellpadding="0" cellspacing="0" role="presentation">
+    <tr><td align="center" style="padding:48px 16px;">
+      <table width="560" cellpadding="0" cellspacing="0" role="presentation" style="background:${COLORS.panel};border:1px solid ${COLORS.line};border-radius:14px;max-width:560px;width:100%;">
         <tr>
-          <td style="background:linear-gradient(135deg,#4f46e5,#7c3aed);padding:32px;text-align:center;">
-            <p style="margin:0;font-size:32px;">🏈</p>
-            <h1 style="margin:8px 0 0;color:#fff;font-size:22px;font-weight:700;">Guldbjergs Fantasy Challenge</h1>
+          <td style="padding:32px 36px 8px;">
+            <p style="margin:0;font-size:11px;letter-spacing:0.14em;text-transform:uppercase;color:${COLORS.muted};font-weight:600;">— Guldbjergs Fantasy Challenge</p>
           </td>
         </tr>
-        <tr><td style="padding:32px;color:#e2e8f0;">${indhold}</td></tr>
+        <tr><td style="padding:8px 36px 32px;color:${COLORS.ink};line-height:1.6;">${indhold}</td></tr>
         <tr>
-          <td style="padding:16px 32px;border-top:1px solid #334155;text-align:center;">
-            <a href="https://gfc-seven.vercel.app" style="color:#818cf8;font-size:12px;text-decoration:none;">gfc-seven.vercel.app</a>
+          <td style="padding:18px 36px;border-top:1px solid ${COLORS.line};text-align:center;">
+            <a href="${SITE_URL}" style="color:${COLORS.muted};font-size:11px;letter-spacing:0.1em;text-transform:uppercase;text-decoration:none;font-weight:600;">${domæneVisning}</a>
           </td>
         </tr>
       </table>
@@ -151,32 +163,30 @@ function baseLayout(indhold: string) {
 </html>`
 }
 
+function emailButton(href: string, label: string) {
+  return `<table cellpadding="0" cellspacing="0" role="presentation"><tr><td>
+    <a href="${href}" style="display:inline-block;background:${COLORS.ink};color:${COLORS.bg};text-decoration:none;padding:13px 26px;border-radius:999px;font-weight:600;font-size:14px;letter-spacing:-0.005em;">
+      ${label}
+    </a>
+  </td></tr></table>`
+}
+
 function magicLinkHtml({ url }: { url: string }) {
-  return baseLayout(`
-    <h2 style="margin:0 0 16px;color:#fff;font-size:20px;">Klik for at logge ind</h2>
-    <p style="margin:0 0 16px;line-height:1.6;">Tryk på knappen nedenfor for at logge ind på Guldbjergs Fantasy Challenge. Linket virker i 24 timer.</p>
-    <table cellpadding="0" cellspacing="0" style="margin:0 0 24px;"><tr><td>
-      <a href="${url}"
-         style="display:inline-block;background:#4f46e5;color:#fff;text-decoration:none;padding:14px 28px;border-radius:8px;font-weight:600;">
-        Log ind
-      </a>
-    </td></tr></table>
-    <p style="margin:0;line-height:1.6;color:#94a3b8;font-size:13px;">Hvis du ikke har bedt om at logge ind, kan du bare ignorere denne mail.</p>
+  return emailBaseLayout(`
+    <h2 style="margin:16px 0 14px;color:${COLORS.ink};font-size:24px;font-weight:700;letter-spacing:-0.02em;">Klik for at logge ind</h2>
+    <p style="margin:0 0 24px;font-size:15px;">Tryk på knappen nedenfor for at logge ind på Guldbjergs Fantasy Challenge. Linket virker i 24 timer.</p>
+    ${emailButton(url, 'Log ind →')}
+    <p style="margin:28px 0 0;font-size:13px;color:${COLORS.muted};">Hvis du ikke har bedt om at logge ind, kan du bare ignorere denne mail.</p>
   `)
 }
 
 function velkomstHtml({ displayName, sæson }: { displayName: string; sæson: string }) {
-  return baseLayout(`
-    <h2 style="margin:0 0 16px;color:#fff;font-size:20px;">Hej ${displayName}!</h2>
-    <p style="margin:0 0 12px;line-height:1.6;">Du er nu tilmeldt <strong>GFC ${sæson}</strong> — Danmarks største fantasy football-konkurrence.</p>
-    <p style="margin:0 0 12px;line-height:1.6;">Du vil modtage en ny mail, når du er blevet tildelt en liga og drafts nærmer sig.</p>
-    <p style="margin:0 0 24px;line-height:1.6;">Følg med på leaderboardet, efterhånden som sæsonen skrider frem.</p>
-    <table cellpadding="0" cellspacing="0"><tr><td>
-      <a href="https://gfc-seven.vercel.app/leaderboard"
-         style="display:inline-block;background:#4f46e5;color:#fff;text-decoration:none;padding:12px 24px;border-radius:8px;font-weight:600;">
-        Se leaderboard
-      </a>
-    </td></tr></table>
+  return emailBaseLayout(`
+    <h2 style="margin:16px 0 14px;color:${COLORS.ink};font-size:24px;font-weight:700;letter-spacing:-0.02em;">Hej ${displayName}</h2>
+    <p style="margin:0 0 14px;font-size:15px;">Du er nu tilmeldt <strong>GFC ${sæson}</strong> — Danmarks største fantasy football-konkurrence.</p>
+    <p style="margin:0 0 14px;font-size:15px;">Du vil modtage en ny mail, når du er blevet tildelt en liga og drafts nærmer sig.</p>
+    <p style="margin:0 0 24px;font-size:15px;">Følg med på leaderboardet, efterhånden som sæsonen skrider frem.</p>
+    ${emailButton(`${SITE_URL}/leaderboard`, 'Se leaderboard →')}
   `)
 }
 
@@ -191,18 +201,16 @@ function ligaTildelingHtml({
   sleeperLigaUrl: string
   sæson: string
 }) {
-  return baseLayout(`
-    <h2 style="margin:0 0 16px;color:#fff;font-size:20px;">Hej ${displayName}!</h2>
-    <p style="margin:0 0 12px;line-height:1.6;">Du er nu tildelt din liga i <strong>GFC ${sæson}</strong>:</p>
-    <div style="background:#0f172a;border-radius:8px;padding:20px;margin:0 0 24px;text-align:center;">
-      <p style="margin:0;font-size:28px;font-weight:700;color:#818cf8;">${ligaNavn}</p>
+  return emailBaseLayout(`
+    <h2 style="margin:16px 0 14px;color:${COLORS.ink};font-size:24px;font-weight:700;letter-spacing:-0.02em;">Hej ${displayName}</h2>
+    <p style="margin:0 0 18px;font-size:15px;">Du er nu tildelt din liga i <strong>GFC ${sæson}</strong>:</p>
+    <div style="background:${COLORS.bg};border:1px solid ${COLORS.line};border-radius:10px;padding:24px;margin:0 0 24px;text-align:center;">
+      <p style="margin:0;font-size:32px;font-weight:700;color:${COLORS.accent};letter-spacing:-0.02em;font-family:'JetBrains Mono',ui-monospace,SFMono-Regular,Menlo,monospace;">${ligaNavn}</p>
     </div>
-    <p style="margin:0 0 24px;line-height:1.6;">Klik på knappen nedenfor for at gå til din liga på Sleeper og gøre dig klar til draft.</p>
-    <table cellpadding="0" cellspacing="0"><tr><td>
-      <a href="${sleeperLigaUrl}"
-         style="display:inline-block;background:#4f46e5;color:#fff;text-decoration:none;padding:12px 24px;border-radius:8px;font-weight:600;">
-        Gå til min liga på Sleeper
-      </a>
-    </td></tr></table>
+    <p style="margin:0 0 24px;font-size:15px;">Klik på knappen nedenfor for at gå til din liga på Sleeper og gøre dig klar til draft.</p>
+    ${emailButton(sleeperLigaUrl, 'Gå til min liga på Sleeper →')}
   `)
 }
+
+// Exported for reuse by other server-side mail (e.g. admin daily digest).
+export { emailBaseLayout, COLORS as EMAIL_COLORS, emailButton }
