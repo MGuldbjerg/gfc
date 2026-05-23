@@ -21,7 +21,7 @@ export default function NotFound() {
           </div>
 
           <h1 style={{
-            fontSize: 'clamp(48px, 9vw, 96px)',
+            fontSize: 'clamp(44px, 8vw, 84px)',
             fontFamily: 'var(--font-display)',
             fontWeight: 800,
             letterSpacing: '-0.03em',
@@ -29,7 +29,7 @@ export default function NotFound() {
             color: 'var(--ink)',
             margin: 0,
           }}>
-            Den side findes <em style={{ fontStyle: 'normal', color: 'var(--accent)' }}>ikke</em>.
+            Fumble og <em style={{ fontStyle: 'normal', color: 'var(--accent)' }}>−2 point</em> til mig!
           </h1>
 
           <p style={{
@@ -37,20 +37,51 @@ export default function NotFound() {
             fontSize: 17,
             lineHeight: 1.55,
             color: 'var(--ink-2)',
-            maxWidth: 480,
+            maxWidth: 520,
           }}>
-            Linket er enten forkert, eller siden er flyttet. Du kan altid finde tilbage til startsiden eller gå direkte til leaderboardet.
+            Siden findes ikke. Gå tilbage i din browser — eller hop direkte videre:
           </p>
 
-          <div style={{ display: 'flex', gap: 12, marginTop: 32, flexWrap: 'wrap' }}>
-            <Link href="/" className="btn">
-              Til forsiden
-              <span className="arrow" aria-hidden />
-            </Link>
-            <Link href="/leaderboard" className="btn ghost">
-              Leaderboard
-            </Link>
-          </div>
+          <ul style={{
+            marginTop: 24,
+            padding: 0,
+            listStyle: 'none',
+            display: 'flex',
+            flexDirection: 'column',
+            gap: 2,
+            width: '100%',
+            maxWidth: 460,
+          }}>
+            {[
+              { href: '/',                label: 'Forsiden' },
+              { href: '/leaderboard',     label: 'Leaderboard' },
+              { href: '/historie',        label: 'Historie og tidligere vindere' },
+              { href: '/regler',          label: 'Regler' },
+              { href: '/sponsorer',       label: 'Sponsorer og præmier' },
+              { href: '/om-gfc',          label: 'Om GFC' },
+              { href: '/draft-statistik', label: 'Draftstatistik' },
+            ].map(({ href, label }) => (
+              <li key={href}>
+                <Link
+                  href={href}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    padding: '14px 4px',
+                    borderBottom: '1px solid var(--line)',
+                    fontSize: 16,
+                    fontWeight: 500,
+                    color: 'var(--ink)',
+                    textDecoration: 'none',
+                  }}
+                >
+                  <span>{label}</span>
+                  <span style={{ color: 'var(--muted)', fontSize: 14 }}>→</span>
+                </Link>
+              </li>
+            ))}
+          </ul>
         </div>
       </div>
     </div>
