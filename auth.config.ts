@@ -3,10 +3,14 @@
 
 import type { NextAuthConfig } from 'next-auth'
 
-const ADMIN_EMAILS = (process.env.ADMIN_EMAILS ?? 'mgj@groenagergaard.dk')
-  .split(',')
-  .map(s => s.trim().toLowerCase())
-  .filter(Boolean)
+export function getAdminEmails(): string[] {
+  return (process.env.ADMIN_EMAILS ?? 'mgj@groenagergaard.dk')
+    .split(',')
+    .map(s => s.trim().toLowerCase())
+    .filter(Boolean)
+}
+
+const ADMIN_EMAILS = getAdminEmails()
 
 declare module 'next-auth' {
   interface Session {

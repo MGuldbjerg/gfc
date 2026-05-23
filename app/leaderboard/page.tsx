@@ -1,9 +1,11 @@
 import Link from 'next/link'
 import { computeLeaderboard, type LeaderboardType } from '@/lib/leaderboard'
 import { CURRENT_SEASON } from '@/lib/leagues'
+import { hentManagedSlutstilling } from '@/lib/historie'
 import { queryOne } from '@/lib/turso'
 import type { LeaderboardResult, LeaderboardEntry } from '@/types/sleeper'
 import LeaderboardTable from './LeaderboardTable'
+import ManagedColumn from '@/components/ManagedColumn'
 
 export const revalidate = 3600
 
@@ -17,10 +19,11 @@ async function getLeaderboard(type: LeaderboardType, season: string): Promise<Le
 }
 
 export default async function LeaderboardPage() {
-  const [bestball, managed, chopped] = await Promise.all([
+  const [bestball, managed, chopped, managedSlut] = await Promise.all([
     getLeaderboard('bestball', CURRENT_SEASON),
     getLeaderboard('managed', CURRENT_SEASON),
     getLeaderboard('chopped', CURRENT_SEASON),
+    hentManagedSlutstilling(CURRENT_SEASON),
   ])
 
   const harChopped = chopped.entries.length > 0
@@ -119,7 +122,7 @@ export default async function LeaderboardPage() {
         )}
 
         {/* Three-column leaderboard */}
-        <div className="lb-grid" style={!harChopped ? { gridTemplateColumns: '1fr 1fr' } : undefined}>
+        <div className={`lb-grid${!harChopped ? ' two-col' : ''}`}>
           <LeagueCol
             name="Bestball"
             ix="01"
@@ -128,15 +131,25 @@ export default async function LeaderboardPage() {
             weekly={bestball.weeklyHighscores}
             type="bestball"
           />
-          <LeagueCol
-            name="Managed"
-            ix="02"
-            sub="Wins · Total point"
-            entries={managed.entries.slice(0, 25)}
-            weekly={managed.weeklyHighscores}
-            type="managed"
-            visWins
-          />
+          {managedSlut && managedSlut.length > 0 ? (
+            <ManagedColumn
+              titel="Managed"
+              ix="02"
+              sub="Wins · Total point"
+              entries={managedSlut}
+              weekly={managed.weeklyHighscores}
+            />
+          ) : (
+            <LeagueCol
+              name="Managed"
+              ix="02"
+              sub="Wins · Total point"
+              entries={managed.entries.slice(0, 25)}
+              weekly={managed.weeklyHighscores}
+              type="managed"
+              visWins
+            />
+          )}
           {harChopped && (
             <LeagueCol
               name="Chopped"

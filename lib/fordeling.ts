@@ -24,6 +24,9 @@ export interface LigaForslag {
   ligaNavn: string
   type: LeagueType
   deltagere: Deltager[]
+  // Sleeper league id — set by the preview route after fordeling when the
+  // matching league exists in lib/leagues.ts for the current season.
+  sleeperId?: string
 }
 
 export interface FordelingsResultat {

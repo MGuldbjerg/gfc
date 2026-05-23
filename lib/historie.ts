@@ -179,8 +179,8 @@ export async function hentUgentligeScorer(
   return perLeague.flat()
 }
 
-// Highest single-week score from the regular season (weeks 1–14). Playoff
-// weeks are excluded so it's a meaningful comparison across all rosters.
+// Highest single-week score across the whole season (regular season + playoffs).
+// The prize for top single-week score includes playoff weeks.
 export interface UgeRekord {
   userId: string
   displayName: string
@@ -194,7 +194,7 @@ export async function hentSingleWeekRekord(
   season: Sæson,
   type: LeagueType,
 ): Promise<UgeRekord | null> {
-  const scores = await hentUgentligeScorer(season, type, REGULAR_SEASON_WEEKS)
+  const scores = await hentUgentligeScorer(season, type, [...REGULAR_SEASON_WEEKS, ...PLAYOFF_WEEKS])
   if (scores.length === 0) return null
   const top = scores.reduce((best, s) => (s.points > best.points ? s : best))
   return {
@@ -316,6 +316,165 @@ export async function hentSæsonVinder(
     format,
     beskrivelse: 'Vinder af GFC slutspil (3-2-1 elimination)',
   }
+}
+
+// --- Managed playoff standings ---------------------------------------------
+// Managed is decided by a pooled GFC playoff (weeks 15→16→17), not by
+// regular-season aggregate. The slutstilling groups rosters by how far they
+// progressed: vinder → finalist → semifinalist → kvartfinalist → grundspil.
+
+export type PlayoffTier = 'winner' | 'finalist' | 'semifinalist' | 'quarterfinalist' | 'rest'
+
+export interface ManagedSlutstillingEntry {
+  username: string
+  displayName: string
+  leagueName: string
+  wins: number
+  points: number
+  tier: PlayoffTier
+  playoffScore?: number
+  playoffWeek?: number
+}
+
+export async function hentManagedSlutstilling(
+  season: Sæson,
+): Promise<ManagedSlutstillingEntry[] | null> {
+  const type: LeagueType = 'managed'
+  if (formatFor(season, type) !== 'pooled-playoff') return null
+
+  const leagues = ALL_LEAGUES.filter(
+    l => l.season === season && l.leagueType === type && l.sleeperId
+  )
+  if (leagues.length === 0) return null
+
+  const playoffWeekScores = await hentUgentligeScorer(season, type, PLAYOFF_WEEKS)
+  const scoreLookup = new Map<string, number>()
+  for (const s of playoffWeekScores) {
+    scoreLookup.set(`${s.leagueId}:${s.rosterId}:${s.week}`, s.points)
+  }
+
+  type RosterAgg = {
+    leagueId: string
+    leagueName: string
+    rosterId: number
+    userId: string
+    displayName: string
+    username: string
+    wins: number
+    points: number
+    seeded: boolean
+    week15: number
+    week16: number
+    week17: number
+  }
+
+  const all: RosterAgg[] = []
+  for (const league of leagues) {
+    const [rosters, users] = await Promise.all([
+      fetchRosters(league.sleeperId),
+      fetchUsers(league.sleeperId),
+    ])
+
+    const sortedRosters = [...rosters].sort((a, b) => {
+      const aW = a.settings?.wins ?? 0
+      const bW = b.settings?.wins ?? 0
+      if (bW !== aW) return bW - aW
+      const aP = (a.settings?.fpts ?? 0) + (a.settings?.fpts_decimal ?? 0) / 100
+      const bP = (b.settings?.fpts ?? 0) + (b.settings?.fpts_decimal ?? 0) / 100
+      return bP - aP
+    })
+
+    sortedRosters.forEach((r, idx) => {
+      const u = users[r.owner_id]
+      if (!u) return
+      const wins = r.settings?.wins ?? 0
+      const points = (r.settings?.fpts ?? 0) + (r.settings?.fpts_decimal ?? 0) / 100
+      const w = (week: number) => scoreLookup.get(`${league.sleeperId}:${r.roster_id}:${week}`) ?? 0
+      all.push({
+        leagueId: league.sleeperId,
+        leagueName: league.name,
+        rosterId: r.roster_id,
+        userId: u.user_id,
+        displayName: u.display_name || u.username || u.user_id,
+        username: u.username || u.display_name || u.user_id,
+        wins,
+        points,
+        seeded: idx < 3,
+        week15: w(15),
+        week16: w(16),
+        week17: w(17),
+      })
+    })
+  }
+
+  const key = (r: { leagueId: string; rosterId: number }) => `${r.leagueId}:${r.rosterId}`
+  const seeded = all.filter(r => r.seeded)
+  const harPlayoffData = seeded.some(r => r.week15 > 0 || r.week16 > 0 || r.week17 > 0)
+
+  const tiers = new Map<string, PlayoffTier>()
+  const scoreInfo = new Map<string, { week: number; points: number }>()
+
+  if (harPlayoffData) {
+    // 15 → 10 → 5 → 1
+    const after15 = [...seeded].sort((a, b) => b.week15 - a.week15).slice(0, 10)
+    const after15Keys = new Set(after15.map(key))
+    const eliminated15 = seeded.filter(r => !after15Keys.has(key(r)))
+
+    const after16 = [...after15].sort((a, b) => b.week16 - a.week16).slice(0, 5)
+    const after16Keys = new Set(after16.map(key))
+    const eliminated16 = after15.filter(r => !after16Keys.has(key(r)))
+
+    const sortedFinal = [...after16].sort((a, b) => b.week17 - a.week17)
+    const winner = sortedFinal[0]
+    const finalists = sortedFinal.slice(1)
+
+    if (winner) {
+      tiers.set(key(winner), 'winner')
+      scoreInfo.set(key(winner), { week: 17, points: winner.week17 })
+    }
+    for (const f of finalists) {
+      tiers.set(key(f), 'finalist')
+      scoreInfo.set(key(f), { week: 17, points: f.week17 })
+    }
+    for (const s of eliminated16) {
+      tiers.set(key(s), 'semifinalist')
+      scoreInfo.set(key(s), { week: 16, points: s.week16 })
+    }
+    for (const q of eliminated15) {
+      tiers.set(key(q), 'quarterfinalist')
+      scoreInfo.set(key(q), { week: 15, points: q.week15 })
+    }
+  }
+
+  const result: ManagedSlutstillingEntry[] = all.map(r => {
+    const tier = tiers.get(key(r)) ?? 'rest'
+    const info = scoreInfo.get(key(r))
+    return {
+      username: r.username,
+      displayName: r.displayName,
+      leagueName: r.leagueName,
+      wins: r.wins,
+      points: r.points,
+      tier,
+      playoffScore: info?.points,
+      playoffWeek: info?.week,
+    }
+  })
+
+  const tierOrder: Record<PlayoffTier, number> = {
+    winner: 0, finalist: 1, semifinalist: 2, quarterfinalist: 3, rest: 4,
+  }
+  result.sort((a, b) => {
+    const td = tierOrder[a.tier] - tierOrder[b.tier]
+    if (td !== 0) return td
+    if (a.tier === 'rest') {
+      if (b.wins !== a.wins) return b.wins - a.wins
+      return b.points - a.points
+    }
+    return (b.playoffScore ?? 0) - (a.playoffScore ?? 0)
+  })
+
+  return result
 }
 
 // Top single-season performances across all seasons, sorted by points.

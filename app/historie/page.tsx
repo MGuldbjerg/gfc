@@ -6,11 +6,13 @@ import {
   hentBedsteSæsonRekorder,
   hentSæsonVinder,
   hentSingleWeekRekord,
+  hentManagedSlutstilling,
   type AllTimeEntry,
   type SæsonRekord,
   type SæsonVinder,
   type UgeRekord,
 } from '@/lib/historie'
+import ManagedColumn from '@/components/ManagedColumn'
 import type { LeaderboardEntry } from '@/types/sleeper'
 
 export const revalidate = 3600
@@ -95,7 +97,7 @@ async function SæsonView({
   sæsoner: string[]
   valgtSæson: string
 }) {
-  const [oversigt, bbVinder, mVinder, cVinder, bbRekord, mRekord, cRekord] = await Promise.all([
+  const [oversigt, bbVinder, mVinder, cVinder, bbRekord, mRekord, cRekord, managedSlut] = await Promise.all([
     hentSæsonOversigt(valgtSæson),
     hentSæsonVinder(valgtSæson, 'bestball'),
     hentSæsonVinder(valgtSæson, 'managed'),
@@ -103,6 +105,7 @@ async function SæsonView({
     hentSingleWeekRekord(valgtSæson, 'bestball'),
     hentSingleWeekRekord(valgtSæson, 'managed'),
     hentSingleWeekRekord(valgtSæson, 'chopped'),
+    hentManagedSlutstilling(valgtSæson),
   ])
 
   return (
@@ -140,7 +143,7 @@ async function SæsonView({
       {(bbRekord || mRekord || cRekord) && (
         <>
           <div className="lb-section-head" style={{ marginTop: 40 }}>
-            Højeste enkeltscore i grundspillet
+            Sæsonens højeste enkeltscore
             <span className="dash" />
           </div>
           <div className="records">
@@ -156,12 +159,13 @@ async function SæsonView({
         Slutstillinger
         <span className="dash" />
       </div>
-      <div
-        className="lb-grid"
-        style={oversigt.chopped.entries.length === 0 ? { gridTemplateColumns: '1fr 1fr' } : undefined}
-      >
+      <div className={`lb-grid${oversigt.chopped.entries.length === 0 ? ' two-col' : ''}`}>
         <SæsonKolonne titel="Bestball" ix="01" entries={oversigt.bestball.entries} />
-        <SæsonKolonne titel="Managed" ix="02" entries={oversigt.managed.entries} visWins />
+        {managedSlut && managedSlut.some(e => e.tier !== 'rest') ? (
+          <ManagedColumn titel="Managed" ix="02" entries={managedSlut} />
+        ) : (
+          <SæsonKolonne titel="Managed" ix="02" entries={oversigt.managed.entries} visWins />
+        )}
         {oversigt.chopped.entries.length > 0 && (
           <SæsonKolonne titel="Chopped" ix="03" entries={oversigt.chopped.entries} />
         )}
@@ -286,10 +290,7 @@ async function AllTimeView() {
         <p className="eyebrow" style={{ marginBottom: 24 }}>
           Aggregeret på tværs af {sæsoner.length} afsluttede sæsoner: {sæsoner.join(', ')}
         </p>
-        <div
-          className="lb-grid"
-          style={!harChopped ? { gridTemplateColumns: '1fr 1fr' } : undefined}
-        >
+        <div className={`lb-grid${!harChopped ? ' two-col' : ''}`}>
           <AllTimeKolonne titel="Bestball" ix="01" entries={bestball.entries} />
           <AllTimeKolonne titel="Managed" ix="02" entries={managed.entries} visWins />
           {harChopped && <AllTimeKolonne titel="Chopped" ix="03" entries={chopped.entries} />}

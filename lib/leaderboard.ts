@@ -1,18 +1,18 @@
-import type { LeaderboardEntry, LeaderboardResult } from '@/types/sleeper'
-import { fetchRosters, fetchUsers } from './sleeper'
+import type { LeaderboardEntry, LeaderboardResult, WeeklyHighscore } from '@/types/sleeper'
+import { fetchRosters, fetchUsers, fetchMatchups } from './sleeper'
 import { ALL_LEAGUES } from './leagues'
 
 export type LeaderboardType = 'bestball' | 'managed' | 'chopped'
 
-/**
- * Compute leaderboard for a given type and season by aggregating Sleeper API data
- */
+const ALL_WEEKS = Array.from({ length: 17 }, (_, i) => i + 1)
+
+type WeekScore = { displayName: string; league: string; week: number; points: number }
+
 export async function computeLeaderboard(
   type: LeaderboardType,
   season: string
 ): Promise<LeaderboardResult> {
   try {
-    // Find all leagues for this season and type
     const leaguesToFetch = ALL_LEAGUES.filter(
       (l) => l.season === season && l.leagueType === type && l.sleeperId
     )
@@ -22,29 +22,48 @@ export async function computeLeaderboard(
       return { entries: [], weeklyHighscores: [] }
     }
 
-    // Fetch data from all leagues in parallel
-    const allRosters: Array<{ leagueId: string; rosters: any[]; users: Record<string, any> }> = await Promise.all(
+    const perLeague = await Promise.all(
       leaguesToFetch.map(async (league) => {
         try {
           const [rosters, users] = await Promise.all([
             fetchRosters(league.sleeperId),
             fetchUsers(league.sleeperId),
           ])
-          return { leagueId: league.sleeperId, rosters, users }
+
+          const rosterOwner = new Map<number, string>()
+          for (const r of rosters) rosterOwner.set(r.roster_id, r.owner_id)
+
+          const weekScoresNested = await Promise.all(
+            ALL_WEEKS.map(async (week) => {
+              try {
+                const matchups = await fetchMatchups(league.sleeperId, week)
+                return matchups.flatMap<WeekScore>((m) => {
+                  const ownerId = rosterOwner.get(m.roster_id)
+                  const u = ownerId ? users[ownerId] : null
+                  if (!u) return []
+                  const displayName = u.display_name || u.username || u.user_id
+                  return [{ displayName, league: league.name, week, points: m.points ?? 0 }]
+                })
+              } catch {
+                return []
+              }
+            })
+          )
+
+          return { league, rosters, users, weekScores: weekScoresNested.flat() }
         } catch (error) {
           console.error(`Failed to fetch data for league ${league.sleeperId}:`, error)
-          return { leagueId: league.sleeperId, rosters: [], users: {} }
+          return { league, rosters: [], users: {} as Record<string, { user_id: string; username?: string; display_name?: string }>, weekScores: [] as WeekScore[] }
         }
       })
     )
 
-    // Aggregate data per user across all leagues for this season+type.
+    // Aggregate season-total entries.
     // The Sleeper /league/{id}/users endpoint does NOT return `username`, so
-    // we key by `user_id` (always present) to avoid collapsing every roster
-    // into a single ghost entry.
+    // we key by `user_id` (always present).
     const userMap = new Map<string, LeaderboardEntry>()
 
-    for (const { rosters, users } of allRosters) {
+    for (const { rosters, users } of perLeague) {
       for (const roster of rosters) {
         const owner = users[roster.owner_id]
         if (!owner || !owner.user_id) continue
@@ -77,7 +96,6 @@ export async function computeLeaderboard(
       }
     }
 
-    // Convert to array and sort
     const entries = Array.from(userMap.values())
 
     if (type === 'managed') {
@@ -89,12 +107,29 @@ export async function computeLeaderboard(
       entries.sort((a, b) => b.totalPoints - a.totalPoints)
     }
 
-    // Assign ranks
     entries.forEach((entry, idx) => {
       entry.rank = idx + 1
     })
 
-    return { entries, weeklyHighscores: [] }
+    // Weekly highscores: top score per week across all leagues of this type.
+    // Season highscore: single highest weekly score across all weeks (includes
+    // playoff weeks — the single-week prize covers the whole season).
+    const allWeekScores: WeekScore[] = perLeague.flatMap((p) => p.weekScores)
+    const perWeekTop = new Map<number, WeekScore>()
+    for (const s of allWeekScores) {
+      if (s.points <= 0) continue
+      const cur = perWeekTop.get(s.week)
+      if (!cur || s.points > cur.points) perWeekTop.set(s.week, s)
+    }
+    const weeklyHighscores: WeeklyHighscore[] = [...perWeekTop.values()].sort(
+      (a, b) => a.week - b.week
+    )
+    const seasonHighscore = weeklyHighscores.reduce<WeeklyHighscore | undefined>(
+      (best, s) => (!best || s.points > best.points ? s : best),
+      undefined
+    )
+
+    return { entries, weeklyHighscores, seasonHighscore }
   } catch (error) {
     console.error(`Error computing leaderboard for ${type} ${season}:`, error)
     return { entries: [], weeklyHighscores: [] }

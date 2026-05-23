@@ -6,6 +6,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { query } from '@/lib/turso'
 import { emailBaseLayout, EMAIL_COLORS } from '@/lib/brevo'
 import { SITE_URL } from '@/lib/site-url'
+import { getAdminEmails } from '@/auth.config'
 
 const BREVO_BASE = 'https://api.brevo.com/v3'
 
@@ -52,10 +53,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ ok: true, sent: 0, note: 'no activity' })
   }
 
-  const adminEmails = (process.env.ADMIN_EMAILS ?? '')
-    .split(',')
-    .map(s => s.trim())
-    .filter(Boolean)
+  const adminEmails = getAdminEmails()
   if (adminEmails.length === 0) {
     return NextResponse.json({ ok: false, error: 'No ADMIN_EMAILS configured' })
   }

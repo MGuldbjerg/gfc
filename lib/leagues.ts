@@ -54,6 +54,22 @@ const LEAGUES_2025 = {
   BB6: '1256387182386499584',
 }
 
+// Maps a fordeling short name ("BB1", "M2", "C1") to the Sleeper league id for
+// a given season. Returns undefined when no league exists yet (e.g. summer,
+// before the season's Sleeper leagues have been created).
+export function sleeperIdForLigaNavn(season: string, ligaNavn: string): string | undefined {
+  const prefix = ligaNavn.match(/^[A-Z]+/)?.[0]
+  const num = ligaNavn.match(/\d+$/)?.[0]
+  if (!prefix || !num) return undefined
+  const type: LeagueType | null =
+    prefix === 'BB' ? 'bestball' : prefix === 'M' ? 'managed' : prefix === 'C' ? 'chopped' : null
+  if (!type) return undefined
+  const expectedName = `${type === 'bestball' ? 'Bestball' : type === 'managed' ? 'Managed' : 'Chopped'} ${num}`
+  return ALL_LEAGUES.find(
+    (l) => l.season === season && l.leagueType === type && l.name === expectedName
+  )?.sleeperId
+}
+
 export const ALL_LEAGUES: League[] = [
   // 2024
   { season: '2024', leagueType: 'managed', name: 'Managed 1', sleeperId: LEAGUES_2024.M1 },
