@@ -1,5 +1,6 @@
 import type { Metadata } from 'next'
 import { Manrope, JetBrains_Mono } from 'next/font/google'
+import { Analytics } from '@vercel/analytics/next'
 import './globals.css'
 import { Nav } from '@/components/Nav'
 import { SITE_URL } from '@/lib/site-url'
@@ -41,6 +42,7 @@ export default function RootLayout({
       <body className={`${manrope.variable} ${jetbrainsMono.variable} antialiased`}>
         <Nav />
         {children}
+        <Analytics />
       </body>
     </html>
   )
