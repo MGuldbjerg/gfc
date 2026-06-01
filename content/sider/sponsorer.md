@@ -17,6 +17,8 @@ LateRound.com blev stiftet af J.J. Zachariasen, som er en mand med mange år i f
 
 Hos LateRound.com har de især fokus på tilgangen og de strategiske overvejelser, snarere end at komme 0,1 point pr. kamp tættere i sine projections for at gøre læsere og lyttere bedre til at agere i en draft, som tit kan være uforudsigelig. Herfra skal i hvert fald lyde en stor anbefaling for at tjekke tilbuddene ud på [LateRound.com](https://lateround.com).
 
+<img width="609" height="186" alt="LR-Logo-3D" src="https://github.com/user-attachments/assets/6d899128-584b-47ce-a9db-c97c8b940dee" />
+
 ---
 
 ## Vil du sponsorere GFC 2026?
