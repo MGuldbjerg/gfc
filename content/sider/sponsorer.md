@@ -10,7 +10,8 @@ OBS: Jeg gør opmærksom på, at jeg intet ansvar har for, om præmiesponsoren r
 
 *Bliver tilføjet i takt med, de bliver bekræftet*
 
-*Draft guide fra LateRound.com*
+**Draft guide fra LateRound.com**
+
 Igen i år har jeg fornøjelsen af at kunne smide nogle af LateRound.com's draft guides i puljen! Selvom man må vente til næste sæson med at få glæde af dem, er der god grund til at glæde sig, for der er mange siders kvalitetsindhold om fantasy football, som bliver opdateret helt op til redraft-ligaernes draft bliver afholdt. 
 
 LateRound.com blev stiftet af J.J. Zachariasen, som er en mand med mange år i fantasybranchen, og i løbet af det sidste år har han trukket David Kitchen og Brandon Gdula ind i folden, så han har fået forstærkninger og leverer endnu mere indhold af høj kvalitet (jeg er fast læser og lytter, og det ER virkelig godt). J.J. blev kendt i fantasy kredse på grund af sin e-bog "Late round QB", hvor han med data viste, hvorfor man på det tidspunkt (2012) med fordel kunne vente på at vælge quarterbacks i fantasy football, hvilket han fik fuldstændig ret i. Siden da har landskabet ændret sig, men J.J. har fortsat med at levere guldkorn, der kan gøre dig til en bedre fantasyspiller. 
