@@ -15,7 +15,7 @@ Igen i år har jeg fornøjelsen af at kunne smide nogle af LateRound.com's draft
 
 LateRound.com blev stiftet af J.J. Zachariasen, som er en mand med mange år i fantasybranchen, og i løbet af det sidste år har han trukket David Kitchen og Brandon Gdula ind i folden, så han har fået forstærkninger og leverer endnu mere indhold af høj kvalitet (jeg er fast læser og lytter, og det ER virkelig godt). J.J. blev kendt i fantasy kredse på grund af sin e-bog "Late round QB", hvor han med data viste, hvorfor man på det tidspunkt (2012) med fordel kunne vente på at vælge quarterbacks i fantasy football, hvilket han fik fuldstændig ret i. Siden da har landskabet ændret sig, men J.J. har fortsat med at levere guldkorn, der kan gøre dig til en bedre fantasyspiller. 
 
-Hos LateRound.com har de især fokus på tilgangen og de strategiske overvejelser, snarere end at komme 0,1 point pr. kamp tættere i sine projections for at gøre læsere og lyttere bedre til at agere i en draft, som tit kan være uforudsigelig. Herfra skal i hvert fald lyde en stor anbefaling for at tjekke tilbuddene ud på LateRound.com.
+Hos LateRound.com har de især fokus på tilgangen og de strategiske overvejelser, snarere end at komme 0,1 point pr. kamp tættere i sine projections for at gøre læsere og lyttere bedre til at agere i en draft, som tit kan være uforudsigelig. Herfra skal i hvert fald lyde en stor anbefaling for at tjekke tilbuddene ud på [LateRound.com](https://lateround.com).
 
 ---
 
