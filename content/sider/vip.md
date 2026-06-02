@@ -1,6 +1,12 @@
 # VIP-deltagere
 
-Hvert år inviterer GFC et udvalg af særlige gæster til at deltage i konkurrencen. Mød dem her.
+Jeg har for vane at invitere nogle amerikanske (og nogle gange danske) VIP's med i konkurrencen for at give lidt stjernedrys til det hele, og for at give muligheden for at connecte med nogle af de fremragende analytikere og personligheder, som fantasy football kan byde på. Ved tilmelding kan man vinge af, om man helst vil undgå disse, da der er noget med tidsforskel og flowet i draften og potentielt noget med sprog, og det er helt okay - jeg kan ikke fuldstændig garantere, at man ikke vil løbe ind i en amerikaner, fordi jeg hellere vil fylde en liga mere op, selvom det betyder et mismatch med dette ønske, end jeg vil skuffe alle de andre, men jeg gør mit bedste.
+
+Heldigvis er der masser af stærke, søde, spændende mennesker, der er med i konkurrencen her, og jeg er sikker på, at amerikanerne også får en skøn oplevelse, når de spiller med os!
+
+Herunder kan du se en præsentation af de VIP's, der spiller med:
+
+##2026
 
 <div class="vip-grid">
 
@@ -17,3 +23,11 @@ Hvert år inviterer GFC et udvalg af særlige gæster til at deltage i konkurren
 </article>
 
 </div>
+
+## Tidligere år
+
+Ud over ovenstående, som kan være gengangere, har vi også tidligere har følgende gæster med:
+
+Marc Skafte-Vaabengaard - Vært på podcasten Det Ovale Kontor
+Denny Carter - Skribent og podcaster for NBC Sports
+Tej Seth - Flere roller inden for dataanalyse om football hos bl.a. PFF og Sumer Sports
