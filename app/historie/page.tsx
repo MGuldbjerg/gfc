@@ -276,7 +276,11 @@ async function AllTimeView() {
   ])
 
   const harChopped = chopped.entries.length > 0
-  const bedsteSæsoner = rekorder.sort((a, b) => b.points - a.points).slice(0, 10)
+  const bedsteSæsonerByType = {
+    bestball: rekorder.filter(r => r.type === 'bestball').sort((a, b) => b.points - a.points),
+    managed:  rekorder.filter(r => r.type === 'managed').sort((a, b) => b.wins !== a.wins ? b.wins - a.wins : b.points - a.points),
+    chopped:  rekorder.filter(r => r.type === 'chopped').sort((a, b) => b.points - a.points),
+  }
   const flesteSæsoner = mergeForAppearances([bestball.entries, managed.entries, chopped.entries]).slice(0, 10)
 
   return (
@@ -303,33 +307,10 @@ async function AllTimeView() {
           Bedste enkelt-sæsoner
           <span className="dash" />
         </div>
-        <div className="lb-col" style={{ maxWidth: 560 }}>
-          <table className="tbl">
-            <thead>
-              <tr>
-                <th className="c">#</th>
-                <th>Hold</th>
-                <th>Sæson</th>
-                <th>Række</th>
-                <th className="r">Point</th>
-              </tr>
-            </thead>
-            <tbody>
-              {bedsteSæsoner.map((r, i) => (
-                <tr key={`${r.username}-${r.season}-${r.type}`}>
-                  <td className="rank c">{i + 1}</td>
-                  <td className="name">
-                    <Link href={`/profil/${r.username}`} style={{ color: 'inherit', textDecoration: 'none' }}>
-                      {r.displayName}
-                    </Link>
-                  </td>
-                  <td>{r.season}</td>
-                  <td>{TYPE_LABEL[r.type]}</td>
-                  <td className="pts">{r.points.toFixed(1)}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+        <div className={`lb-grid${!harChopped ? ' two-col' : ''}`}>
+          <BedsteSæsonerKolonne titel="Bestball" ix="01" rekorder={bedsteSæsonerByType.bestball} />
+          <BedsteSæsonerKolonne titel="Managed" ix="02" rekorder={bedsteSæsonerByType.managed} visWins />
+          {harChopped && <BedsteSæsonerKolonne titel="Chopped" ix="03" rekorder={bedsteSæsonerByType.chopped} />}
         </div>
       </section>
 
@@ -372,6 +353,56 @@ const TYPE_LABEL: Record<SæsonRekord['type'], string> = {
   bestball: 'Bestball',
   managed: 'Managed',
   chopped: 'Chopped',
+}
+
+function BedsteSæsonerKolonne({
+  titel, ix, rekorder, visWins,
+}: {
+  titel: string
+  ix: string
+  rekorder: SæsonRekord[]
+  visWins?: boolean
+}) {
+  return (
+    <div className="lb-col">
+      <div className="lb-col-head">
+        <span className="lb-col-name">
+          <span className="lb-ix">{ix}</span>
+          {titel}
+        </span>
+      </div>
+      {rekorder.length === 0 ? (
+        <p className="eyebrow" style={{ padding: '16px 0' }}>Ingen data</p>
+      ) : (
+        <table className="tbl">
+          <thead>
+            <tr>
+              <th className="c">#</th>
+              <th>Hold</th>
+              <th>Sæson</th>
+              {visWins && <th className="c">W</th>}
+              <th className="r">Point</th>
+            </tr>
+          </thead>
+          <tbody>
+            {rekorder.map((r, i) => (
+              <tr key={`${r.username}-${r.season}`}>
+                <td className="rank c">{i + 1}</td>
+                <td className="name">
+                  <Link href={`/profil/${r.username}`} style={{ color: 'inherit', textDecoration: 'none' }}>
+                    {r.displayName}
+                  </Link>
+                </td>
+                <td>{r.season}</td>
+                {visWins && <td className="c">{r.wins}</td>}
+                <td className="pts">{r.points.toFixed(1)}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      )}
+    </div>
+  )
 }
 
 function AllTimeKolonne({
