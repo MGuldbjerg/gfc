@@ -6,7 +6,7 @@ Heldigvis er der masser af stærke, søde, spændende mennesker, der er med i ko
 
 Herunder kan du se en præsentation af de VIP's, der spiller med:
 
-##2026
+## 2026
 
 <div class="vip-grid">
 
