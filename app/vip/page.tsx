@@ -13,19 +13,19 @@ type Vip = {
 
 const VIPS: Vip[] = [
   {
-    navn: 'Navn Navnesen',
-    fra: 'København',
-    bio: 'Skriv en kort beskrivelse af denne VIP-deltager her. Hvad gør dem særlige, og hvorfor er de med i GFC?',
+    navn: 'Joey Wright',
+    fra: 'FootballGuys.com',
+    bio: 'Joey Wright er næsten blevet til fast inventar i Guldbjergs Fantasy Challenge, da han har været med siden første år, og han er et perfekt valg som Community Ambassador for [FootballGuys.com](https://footballguys.com), hvor han med altid fantastisk humør og gode takes på hvad der rører sig i fantasy-verden er en stor appelsin i turbanen for konkurrencen!',
   },
   {
-    navn: 'Anden Deltager',
-    fra: 'Aarhus',
-    bio: 'Endnu en VIP-deltager med en interessant baggrund. Beskriv dem med et par sætninger.',
+    navn: '?',
+    fra: '?',
+    bio: '?',
   },
   {
-    navn: 'Tredje Person',
-    fra: 'Odense',
-    bio: 'En tredje VIP med sin egen unikke historie. Teksten her vises direkte på siden.',
+    navn: '?',
+    fra: '?',
+    bio: '?',
   },
 ]
 
