@@ -1,8 +1,6 @@
-import Link from 'next/link'
 import { query } from '@/lib/turso'
 import { CURRENT_SEASON } from '@/lib/leagues'
-import AdminTilmeldinger from './AdminTilmeldinger'
-import { AdminAnnoncering } from './AdminAnnoncering'
+import { AdminTabs } from './AdminTabs'
 
 export const dynamic = 'force-dynamic'
 
@@ -75,35 +73,7 @@ export default async function AdminPage() {
         <p className="sub">Tilmeldingsoversigt og ligafordeling</p>
       </div>
 
-      <div className="stat-blocks" style={{ gridTemplateColumns: 'repeat(5, 1fr)', marginBottom: 32 }}>
-        {[
-          { label: 'Tilmeldte',  value: stats.total },
-          { label: 'Tildelt liga', value: stats.tildelt },
-          { label: 'Bestball',   value: stats.bestball },
-          { label: 'Managed',    value: stats.managed },
-          { label: 'Chopped',    value: stats.chopped },
-        ].map(({ label, value }) => (
-          <div key={label} className="stat-block">
-            <div className="stat-num" style={{ fontSize: 40 }}>{value}</div>
-            <div className="stat-label">{label}</div>
-          </div>
-        ))}
-      </div>
-
-      <div style={{ display: 'flex', gap: 12, marginBottom: 32 }}>
-        <Link href="/admin/fordel" className="btn">
-          Fordel deltagere i ligaer
-          <span className="arrow" aria-hidden />
-        </Link>
-      </div>
-
-      <AdminTilmeldinger tilmeldinger={tilmeldinger} />
-
-      <div className="divider" style={{ margin: '48px 0 32px' }} />
-
-      <AdminAnnoncering />
-
-      <div style={{ paddingBottom: 80 }} />
+      <AdminTabs tilmeldinger={tilmeldinger} stats={stats} />
     </>
   )
 }

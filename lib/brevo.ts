@@ -214,7 +214,29 @@ function ligaTildelingHtml({
   `)
 }
 
-function annonceringsHtml({
+function inlineFormat(text: string): string {
+  return text
+    .replace(/\[([^\]]+)\]\(([^)]+)\)/g, `<a href="$2" style="color:${COLORS.accent};text-decoration:underline;text-underline-offset:2px;">$1</a>`)
+    .replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>')
+}
+
+function parseMarkdown(tekst: string): string {
+  return tekst
+    .split(/\n{2,}/)
+    .map(p => {
+      const t = p.trim()
+      if (!t) return ''
+      if (t.startsWith('## ')) {
+        return `<h2 style="margin:0 0 12px;font-size:20px;font-weight:700;letter-spacing:-0.018em;color:${COLORS.ink};">${inlineFormat(t.slice(3).trim())}</h2>`
+      }
+      const lines = t.split('\n').map(inlineFormat).join('<br>')
+      return `<p style="margin:0 0 14px;font-size:15px;">${lines}</p>`
+    })
+    .filter(Boolean)
+    .join('\n')
+}
+
+export function buildAnnonceringsHtml({
   overskrift,
   brødtekst,
   cta,
@@ -223,17 +245,9 @@ function annonceringsHtml({
   brødtekst: string
   cta?: { label: string; url: string }
 }) {
-  // Replace newlines with <br> so plain textarea input renders correctly.
-  const bodyHtml = brødtekst
-    .split('\n')
-    .map(l => l.trim())
-    .filter(Boolean)
-    .map(l => `<p style="margin:0 0 14px;font-size:15px;">${l}</p>`)
-    .join('\n')
-
   return emailBaseLayout(`
     <h2 style="margin:16px 0 20px;color:${COLORS.ink};font-size:26px;font-weight:700;letter-spacing:-0.025em;line-height:1.2;">${overskrift}</h2>
-    ${bodyHtml}
+    ${parseMarkdown(brødtekst)}
     ${cta ? `<div style="margin-top:24px;">${emailButton(cta.url, cta.label)}</div>` : ''}
   `)
 }
@@ -260,7 +274,7 @@ export async function opretOgSendKampagne({
       email: process.env.BREVO_SENDER_EMAIL,
     },
     type: 'classic',
-    htmlContent: annonceringsHtml({ overskrift, brødtekst, cta }),
+    htmlContent: buildAnnonceringsHtml({ overskrift, brødtekst, cta }),
     recipients: { listIds: [GFC_LIST_ID] },
   })
 

@@ -652,6 +652,27 @@ a { color: inherit; text-decoration: none; }
 }
 .season-pill:hover { border-color: color-mix(in oklch, var(--ink) 20%, var(--line)); }
 .season-pill.active { background: var(--ink); color: var(--bg); border-color: var(--ink); }
+.season-pill:disabled { opacity: .4; cursor: default; pointer-events: none; }
+
+.fmt-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: 26px;
+  min-width: 26px;
+  padding: 0 8px;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--ink-2);
+  background: var(--bg-2);
+  border: 1px solid var(--line);
+  border-radius: var(--r-sm);
+  cursor: pointer;
+  transition: background .15s, color .15s, border-color .15s;
+  letter-spacing: 0.02em;
+}
+.fmt-btn:hover { background: var(--panel); color: var(--ink); border-color: color-mix(in oklch, var(--ink) 25%, var(--line)); }
 
 /* ── Winner / Record cards ──────────────────────────────────────────────── */
 

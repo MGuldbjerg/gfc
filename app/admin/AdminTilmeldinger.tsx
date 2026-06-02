@@ -4,7 +4,7 @@ import { useState } from 'react'
 
 type Profil = { display_name: string; username: string; id: string }
 
-interface Tilmelding {
+export interface Tilmelding {
   id: string
   season: string
   preferred_types: string[]
