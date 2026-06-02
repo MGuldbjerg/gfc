@@ -44,17 +44,19 @@ export async function fjernFraNyhedsbrevsliste({ email }: { email: string }) {
   })
 }
 
-// Tilføj eller opdater kontakt i Brevo
+// Tilføj eller opdater kontakt i Brevo — tilføjer kun til listen hvis nyhedsbrev=true.
 export async function upsertKontakt({
   email,
   displayName,
   sleeperUsername,
   sæson,
+  nyhedsbrev,
 }: {
   email: string
   displayName: string
   sleeperUsername: string
   sæson: string
+  nyhedsbrev: boolean
 }) {
   await brevoFetch('/contacts', 'POST', {
     email,
@@ -63,8 +65,8 @@ export async function upsertKontakt({
       SLEEPER: sleeperUsername,
       SAESON: sæson,
     },
-    listIds: [GFC_LIST_ID],
-    updateEnabled: true, // opdater hvis kontakten allerede findes
+    ...(nyhedsbrev ? { listIds: [GFC_LIST_ID] } : {}),
+    updateEnabled: true,
   })
 }
 
@@ -210,6 +212,71 @@ function ligaTildelingHtml({
     <p style="margin:0 0 24px;font-size:15px;">Klik på knappen nedenfor for at gå til din liga på Sleeper og gøre dig klar til draft.</p>
     ${emailButton(sleeperLigaUrl, 'Gå til min liga på Sleeper →')}
   `)
+}
+
+function annonceringsHtml({
+  overskrift,
+  brødtekst,
+  cta,
+}: {
+  overskrift: string
+  brødtekst: string
+  cta?: { label: string; url: string }
+}) {
+  // Replace newlines with <br> so plain textarea input renders correctly.
+  const bodyHtml = brødtekst
+    .split('\n')
+    .map(l => l.trim())
+    .filter(Boolean)
+    .map(l => `<p style="margin:0 0 14px;font-size:15px;">${l}</p>`)
+    .join('\n')
+
+  return emailBaseLayout(`
+    <h2 style="margin:16px 0 20px;color:${COLORS.ink};font-size:26px;font-weight:700;letter-spacing:-0.025em;line-height:1.2;">${overskrift}</h2>
+    ${bodyHtml}
+    ${cta ? `<div style="margin-top:24px;">${emailButton(cta.url, cta.label)}</div>` : ''}
+  `)
+}
+
+// Send an announcement campaign to the GFC newsletter list via Brevo's
+// campaign API (handles unsubscribe links automatically — correct for list sends).
+export async function opretOgSendKampagne({
+  subject,
+  overskrift,
+  brødtekst,
+  cta,
+}: {
+  subject: string
+  overskrift: string
+  brødtekst: string
+  cta?: { label: string; url: string }
+}) {
+  // 1. Create the campaign.
+  const createRes = await brevoFetch('/emailCampaigns', 'POST', {
+    name: `GFC — ${subject} (${new Date().toISOString().slice(0, 10)})`,
+    subject,
+    sender: {
+      name: 'Guldbjergs Fantasy Challenge',
+      email: process.env.BREVO_SENDER_EMAIL,
+    },
+    type: 'classic',
+    htmlContent: annonceringsHtml({ overskrift, brødtekst, cta }),
+    recipients: { listIds: [GFC_LIST_ID] },
+  })
+
+  if (!createRes.ok) {
+    throw new Error(`Brevo kampagne-oprettelse fejlede: ${createRes.status}`)
+  }
+
+  const { id } = await createRes.json() as { id: number }
+
+  // 2. Send immediately.
+  const sendRes = await brevoFetch(`/emailCampaigns/${id}/sendNow`, 'POST')
+  if (!sendRes.ok && sendRes.status !== 204) {
+    throw new Error(`Brevo kampagne-afsendelse fejlede: ${sendRes.status}`)
+  }
+
+  return { kampagneId: id }
 }
 
 // Exported for reuse by other server-side mail (e.g. admin daily digest).

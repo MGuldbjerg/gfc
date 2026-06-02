@@ -475,6 +475,55 @@ a { color: inherit; text-decoration: none; }
 
 @media (max-width: 760px) { .hs-grid { grid-template-columns: 1fr; } }
 
+.draft-format-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; }
+@media (max-width: 640px) { .draft-format-grid { grid-template-columns: 1fr; } }
+
+/* ── VIP cards ──────────────────────────────────────────────────────────── */
+
+.vip-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 20px;
+  padding-bottom: 80px;
+}
+
+.vip-card {
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: var(--r);
+  box-shadow: var(--sh-1);
+  padding: 28px 28px 32px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  transition: box-shadow .2s, transform .2s;
+}
+
+.vip-card:hover { box-shadow: var(--sh-2); transform: translateY(-2px); }
+
+.vip-card-index { line-height: 1; }
+
+.vip-card-name {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 22px;
+  letter-spacing: -0.025em;
+  color: var(--ink);
+  margin-bottom: 6px;
+}
+
+.vip-card-fra { margin-bottom: 14px; }
+
+.vip-card-bio {
+  font-size: 14px;
+  line-height: 1.65;
+  color: var(--ink-2);
+  margin: 0;
+}
+
+@media (max-width: 960px) { .vip-grid { grid-template-columns: 1fr 1fr; } }
+@media (max-width: 600px) { .vip-grid { grid-template-columns: 1fr; } }
+
 /* ── Leaderboard columns ────────────────────────────────────────────────── */
 
 .lb-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }

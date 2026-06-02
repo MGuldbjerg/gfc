@@ -77,7 +77,7 @@ export default async function DraftStatistikPage({
                   visning="udsving"
                 />
 
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 24 }}>
+                <div className="draft-format-grid">
                   <DraftSektion
                     titel="Managed — top ADP"
                     beskrivelse="Tidligste draftede spillere i managed-ligaer."

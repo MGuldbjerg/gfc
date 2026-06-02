@@ -2,6 +2,7 @@ import Link from 'next/link'
 import { query } from '@/lib/turso'
 import { CURRENT_SEASON } from '@/lib/leagues'
 import AdminTilmeldinger from './AdminTilmeldinger'
+import { AdminAnnoncering } from './AdminAnnoncering'
 
 export const dynamic = 'force-dynamic'
 
@@ -97,6 +98,10 @@ export default async function AdminPage() {
       </div>
 
       <AdminTilmeldinger tilmeldinger={tilmeldinger} />
+
+      <div className="divider" style={{ margin: '48px 0 32px' }} />
+
+      <AdminAnnoncering />
 
       <div style={{ paddingBottom: 80 }} />
     </>

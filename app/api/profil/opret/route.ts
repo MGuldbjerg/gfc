@@ -72,12 +72,13 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Kunne ikke oprette profil' }, { status: 500 })
   }
 
-  // Best-effort Brevo sync.
+  // Best-effort Brevo sync — only adds to the mailing list if nyhedsbrev is checked.
   upsertKontakt({
     email: session.user.email,
     displayName,
     sleeperUsername,
     sæson: 'profil',
+    nyhedsbrev: !!nyhedsbrev,
   }).catch(err => console.error('Brevo-fejl:', err))
 
   return NextResponse.json({ ok: true })
