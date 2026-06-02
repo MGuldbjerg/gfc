@@ -25,12 +25,14 @@ export default function ManagedColumn({
   entries: ManagedSlutstillingEntry[]
   weekly?: WeeklyHighscore[]
 }) {
-  const grouped = TIER_ORDER.map((tier) => ({
-    tier,
-    rows: entries.filter((e) => e.tier === tier),
-  })).filter((g) => g.rows.length > 0)
-
   const harPlayoff = entries.some((e) => e.tier !== 'rest')
+
+  const grouped = TIER_ORDER
+    .filter((tier) => harPlayoff ? tier !== 'rest' : true)
+    .map((tier) => ({
+      tier,
+      rows: entries.filter((e) => e.tier === tier),
+    })).filter((g) => g.rows.length > 0)
 
   return (
     <div className="lb-col">
