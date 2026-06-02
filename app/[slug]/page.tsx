@@ -2,6 +2,7 @@ import { notFound } from 'next/navigation'
 import type { Metadata } from 'next'
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
+import rehypeRaw from 'rehype-raw'
 import { listSlugs, loadSide } from '@/lib/sider'
 
 export const dynamicParams = false
@@ -63,7 +64,7 @@ export default async function MarkdownSide({
             [&_td]:border-b [&_td]:border-[var(--line-2)] [&_td]:px-3 [&_td]:py-2
           "
         >
-          <ReactMarkdown remarkPlugins={[remarkGfm]}>{side.body}</ReactMarkdown>
+          <ReactMarkdown remarkPlugins={[remarkGfm]} rehypePlugins={[rehypeRaw]}>{side.body}</ReactMarkdown>
         </article>
       </div>
     </div>
