@@ -12,6 +12,26 @@ type DeltagerOption = {
   er_amerikansk_vip?: boolean
 }
 
+function KopierKnap({ tekst }: { tekst: string }) {
+  const [kopieret, setKopieret] = useState(false)
+  function kopier() {
+    navigator.clipboard.writeText(tekst).then(() => {
+      setKopieret(true)
+      setTimeout(() => setKopieret(false), 2000)
+    })
+  }
+  return (
+    <button
+      onClick={kopier}
+      className="fmt-btn"
+      title="Kopiér Sleeper-brugernavne"
+      style={{ marginLeft: 'auto' }}
+    >
+      {kopieret ? '✓ Kopieret' : '⎘ Kopier'}
+    </button>
+  )
+}
+
 export default function FordelPage() {
   const [ligaStørrelse, setLigaStørrelse] = useState(12)
   const [choppedStørrelse, setChoppedStørrelse] = useState(18)
@@ -239,6 +259,7 @@ export default function FordelPage() {
                     <div className="lb-col-head">
                       <span className="lb-col-name" style={{ fontSize: 18 }}>{liga.ligaNavn}</span>
                       <span className={`type-badge ${liga.type}`}>{liga.type}</span>
+                      <KopierKnap tekst={liga.deltagere.map(d => d.sleeperUsername).join('\n')} />
                     </div>
                     <p className="eyebrow" style={{ marginBottom: 12 }}>{liga.deltagere.length} hold</p>
                     <ol>
