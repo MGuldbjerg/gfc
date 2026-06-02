@@ -38,6 +38,15 @@ export default async function MinSide() {
     [session.user.id, CURRENT_SEASON]
   )
 
+  const tidligereReg = !reg
+    ? await queryOne<{ season: string }>(
+        `SELECT season FROM registrations
+          WHERE profile_id = ? AND season <> ?
+          ORDER BY season DESC LIMIT 1`,
+        [session.user.id, CURRENT_SEASON]
+      )
+    : null
+
   const rækker = parseRækker(reg?.preferred_types)
 
   async function logUd() {
@@ -81,7 +90,12 @@ export default async function MinSide() {
           </div>
         </div>
 
-        {!reg ? <BannerTilmeldSaeson /> : <StatusKort reg={reg} rækker={rækker} frameld={frameld} />}
+        {!reg
+          ? tidligereReg
+            ? <BannerVelkommenTilbage navn={profil.display_name} sidsteSæson={tidligereReg.season} />
+            : <BannerTilmeldSaeson />
+          : <StatusKort reg={reg} rækker={rækker} frameld={frameld} />
+        }
 
         <div style={{ marginTop: 32, display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 12 }}>
           <DashboardKort href="/indstillinger" ix="01" titel="Indstillinger" tekst="Privatliv og nyhedsbrev" />
@@ -107,6 +121,51 @@ export default async function MinSide() {
 
         <div style={{ paddingBottom: 80 }} />
       </div>
+    </div>
+  )
+}
+
+function BannerVelkommenTilbage({ navn, sidsteSæson }: { navn: string; sidsteSæson: string }) {
+  return (
+    <div style={{
+      padding: '32px 28px',
+      background: 'var(--ink)',
+      color: 'var(--bg)',
+      borderRadius: 'var(--r)',
+      boxShadow: 'var(--sh-2)',
+      display: 'flex',
+      flexWrap: 'wrap',
+      alignItems: 'center',
+      gap: 24,
+    }}>
+      <div style={{ flex: 1, minWidth: 200 }}>
+        <p className="eyebrow" style={{ marginBottom: 10, color: 'color-mix(in oklch, var(--bg) 55%, transparent)' }}>
+          GFC {CURRENT_SEASON}
+        </p>
+        <p style={{ fontSize: 22, fontFamily: 'var(--font-display)', fontWeight: 700, letterSpacing: '-0.02em', marginBottom: 10 }}>
+          Velkommen tilbage, {navn}
+        </p>
+        <p style={{ fontSize: 15, lineHeight: 1.55, color: 'color-mix(in oklch, var(--bg) 70%, transparent)' }}>
+          Du deltog i GFC {sidsteSæson} — tilmeld dig {CURRENT_SEASON} og vær med igen.
+        </p>
+      </div>
+      <Link href="/saeson/tilmeld" style={{
+        display: 'inline-flex',
+        alignItems: 'center',
+        gap: 8,
+        background: 'var(--bg)',
+        color: 'var(--ink)',
+        padding: '13px 26px',
+        borderRadius: 'var(--r-pill)',
+        fontWeight: 600,
+        fontSize: 14,
+        letterSpacing: '-0.005em',
+        textDecoration: 'none',
+        flexShrink: 0,
+        whiteSpace: 'nowrap',
+      }}>
+        Tilmeld mig {CURRENT_SEASON}
+      </Link>
     </div>
   )
 }
