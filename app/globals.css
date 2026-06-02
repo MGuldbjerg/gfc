@@ -486,6 +486,7 @@ a { color: inherit; text-decoration: none; }
   gap: 20px;
   padding-bottom: 80px;
   max-width: 560px;
+  margin: 0 auto;
 }
 
 .vip-card {
