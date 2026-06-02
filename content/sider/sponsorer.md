@@ -12,7 +12,7 @@ Den konkrete præmiestruktur vil jeg skrive her, når de er blevet bekræftet, m
 
 *Bliver tilføjet i takt med, de bliver bekræftet*
 
-**Draft guide fra LateRound.com**
+## Draft guide fra LateRound.com**
 
 Igen i år har jeg fornøjelsen af at kunne smide nogle af LateRound.com's draft guides i puljen! Selvom man må vente til næste sæson med at få glæde af dem, er der god grund til at glæde sig, for der er mange siders kvalitetsindhold om fantasy football, som bliver opdateret helt op til redraft-ligaernes draft bliver afholdt. 
 
@@ -22,9 +22,7 @@ Hos LateRound.com har de især fokus på tilgangen og de strategiske overvejelse
 
 <img width="609" height="186" alt="LR-Logo-3D" src="https://github.com/user-attachments/assets/6d899128-584b-47ce-a9db-c97c8b940dee" />
 
-
-
-**Abonnement til FootballGuys.com**
+## Abonnement til FootballGuys.com**
 
 Endnu en genganger er [FootballGuys.com](https://footballguys.com), som lægger abonnementer på deres Elite-plan ud til de heldige og dygtige i konkurrencen! FootballGuys er et af de større tilbud i fantasy-sfæren, og de har særligt fokus på community-delen. Blandt andet har de en aktiv Discord-server, afholder med jævne mellemrum Trivia nights og lignende, men I må ikke tro, at der ikke også er hardcore fantasy-analyse at finde! Blandt andet har de (efter min mening) nogle af de stærkeste tilbud til IDP-spillere, og de har en app, der kan synkronisere med de fleste større platforme, så du kan få helt konkrete anbefalinger til lige netop dit hold.
 
