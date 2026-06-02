@@ -3,12 +3,12 @@
 export type BadgeType =
   | 'og'
   | 'champ'
+  | 'liga_vinder'
   | 'peak'
   | 'raketstart'
   | 'ugens_bomber'
   | 'konsistent_konge'
   | 'clutch'
-  | 'saesontop3'
   | 'saeson_veteran'
   | 'alltid_top20'
 
@@ -25,8 +25,15 @@ export const BADGES: Record<BadgeType, BadgeDef> = {
     id: 'champ',
     emoji: '🏅',
     navn: 'Champ',
-    beskrivelse: 'Vundet en sæsong-lang GFC-liga',
+    beskrivelse: 'Vundet GFC-sæsonkonkurrencen inkl. slutspil',
     farve: 'bg-gradient-to-br from-yellow-500 to-yellow-700',
+  },
+  liga_vinder: {
+    id: 'liga_vinder',
+    emoji: '🥇',
+    navn: 'W',
+    beskrivelse: 'Vundet sin Sleeper-liga i grundspillet',
+    farve: 'bg-gradient-to-br from-emerald-500 to-teal-700',
   },
   peak: {
     id: 'peak',
@@ -58,9 +65,9 @@ export const BADGES: Record<BadgeType, BadgeDef> = {
   },
   konsistent_konge: {
     id: 'konsistent_konge',
-    emoji: '👑',
-    navn: 'Konsistent kong',
-    beskrivelse: 'Top 3 i sin liga i 5 eller flere uger i træk',
+    emoji: '📈',
+    navn: 'Stabil streak',
+    beskrivelse: 'Aldrig i bundhalvdelen i mere end 2 uger på en hel sæson',
     farve: 'bg-gradient-to-br from-yellow-500 to-amber-600',
   },
   clutch: {
@@ -69,13 +76,6 @@ export const BADGES: Record<BadgeType, BadgeDef> = {
     navn: 'Clutch',
     beskrivelse: 'Vandt en managed-kamp med under 3 point',
     farve: 'bg-gradient-to-br from-green-600 to-emerald-600',
-  },
-  saesontop3: {
-    id: 'saesontop3',
-    emoji: '🏆',
-    navn: 'Top 3',
-    beskrivelse: 'Sluttede top 3 i sin liga',
-    farve: 'bg-gradient-to-br from-indigo-600 to-purple-600',
   },
   saeson_veteran: {
     id: 'saeson_veteran',
@@ -100,7 +100,7 @@ import { ALL_LEAGUES } from './leagues'
 export function beregnBadges(
   sæsoner: SæsonData[],
   sleeperUserId: string,
-  opts?: { erUgeRekordHolder?: boolean }
+  opts?: { erUgeRekordHolder?: boolean; erSæsonVinder?: boolean }
 ): BadgeType[] {
   const earned = new Set<BadgeType>()
 
@@ -117,19 +117,17 @@ export function beregnBadges(
   // Peak — all-time single-week record holder in any league (cross-player, passed from caller)
   if (opts?.erUgeRekordHolder) earned.add('peak')
 
+  // Champ — won the season-long GFC contest incl. playoffs (passed from caller)
+  if (opts?.erSæsonVinder) earned.add('champ')
+
   for (const s of sæsoner) {
-    // Champ — vandt sin liga
-    if (s.rangPlacering === 1) earned.add('champ')
+    // W — won their individual Sleeper league in the regular season
+    if (s.rangPlacering === 1) earned.add('liga_vinder')
 
-    // Top 3 i liga
-    if (s.rangPlacering !== null && s.rangPlacering <= 3) earned.add('saesontop3')
-
-    // Konsistent kong — top 3 i liga i 5+ uger i træk (approximation via højeste scores)
-    if (s.weeklyScores.length >= 5) {
-      const topScorePerUge = s.weeklyScores.filter(w => w.point > 0)
-      // Simpel check: gennemsnitsplacering baseret på om de er høje scorere
-      const høje = topScorePerUge.filter(w => w.point >= s.totalPoint / s.weeklyScores.length * 1.1)
-      if (høje.length >= 5) earned.add('konsistent_konge')
+    // Konsistent kong — bottom half in at most 2 weeks across the season
+    if (s.weeklyRangs.length >= 10) {
+      const bundUger = s.weeklyRangs.filter(w => w.rang > Math.floor(w.antalHold / 2))
+      if (bundUger.length <= 2) earned.add('konsistent_konge')
     }
   }
 

@@ -4,7 +4,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { queryOne } from '@/lib/turso'
 import { hentProfilData } from '@/lib/profil'
 import { beregnBadges } from '@/lib/badges'
-import { listAfsluttedeSæsoner, hentSingleWeekRekord } from '@/lib/historie'
+import { listAfsluttedeSæsoner, hentSingleWeekRekord, hentSæsonVinder } from '@/lib/historie'
 
 export const revalidate = 3600
 
@@ -27,18 +27,17 @@ export async function GET(
   }
 
   const afsluttedeSæsoner = listAfsluttedeSæsoner()
-  const ugeRekorder = await Promise.all(
-    afsluttedeSæsoner.flatMap(s => [
-      hentSingleWeekRekord(s, 'bestball'),
-      hentSingleWeekRekord(s, 'managed'),
-      hentSingleWeekRekord(s, 'chopped'),
-    ])
-  )
-  const erUgeRekordHolder = ugeRekorder.some(
-    r => r !== null && r.username === profil.sleeperUsername
-  )
+  const leagueTypes = ['bestball', 'managed', 'chopped'] as const
 
-  const badges = beregnBadges(profil.sæsoner, profil.sleeperUserId, { erUgeRekordHolder })
+  const [ugeRekorder, sæsonVindere] = await Promise.all([
+    Promise.all(afsluttedeSæsoner.flatMap(s => leagueTypes.map(t => hentSingleWeekRekord(s, t)))),
+    Promise.all(afsluttedeSæsoner.flatMap(s => leagueTypes.map(t => hentSæsonVinder(s, t)))),
+  ])
+
+  const erUgeRekordHolder = ugeRekorder.some(r => r?.username === profil.sleeperUsername)
+  const erSæsonVinder = sæsonVindere.some(r => r?.username === profil.sleeperUsername)
+
+  const badges = beregnBadges(profil.sæsoner, profil.sleeperUserId, { erUgeRekordHolder, erSæsonVinder })
 
   return NextResponse.json({
     displayName: profil.displayName,

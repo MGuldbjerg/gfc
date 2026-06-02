@@ -14,6 +14,12 @@ export interface UgeScore {
   point: number
 }
 
+export interface UgeRang {
+  uge: number
+  rang: number   // 1 = highest scorer that week in the league
+  antalHold: number
+}
+
 export interface SæsonData {
   sæson: string
   ligaNavn: string
@@ -22,6 +28,7 @@ export interface SæsonData {
   wins?: number
   losses?: number
   weeklyScores: UgeScore[]
+  weeklyRangs: UgeRang[]
   højesteSingleScore: number
   højesteSingleScoreUge: number
   rangPlacering: number | null   // rangplacering i ligaen
@@ -76,11 +83,15 @@ async function hentLigaData(
 
   // Hent ugescorer for uge 1-17
   const weeklyScores: UgeScore[] = []
+  const weeklyRangs: UgeRang[] = []
   for (let uge = 1; uge <= 17; uge++) {
     const matchups = await getMatchups(liga.sleeperId, uge)
     const matchup = matchups?.find(m => m.roster_id === roster.roster_id)
     if (matchup && matchup.points > 0) {
       weeklyScores.push({ uge, point: matchup.points })
+      const allPoints = (matchups ?? []).map(m => m.points).filter(p => p > 0)
+      const rang = allPoints.filter(p => p > matchup.points).length + 1
+      weeklyRangs.push({ uge, rang, antalHold: allPoints.length })
     }
     await new Promise(r => setTimeout(r, 50)) // rate-limiting
   }
@@ -104,6 +115,7 @@ async function hentLigaData(
     wins: roster.settings.wins,
     losses: roster.settings.losses,
     weeklyScores,
+    weeklyRangs,
     højesteSingleScore: højeste.point,
     højesteSingleScoreUge: højeste.uge,
     rangPlacering,

@@ -3,7 +3,8 @@ import Link from 'next/link'
 import { hentProfilData } from '@/lib/profil'
 import { beregnBadges } from '@/lib/badges'
 import BadgeHylde from '@/components/BadgeHylde'
-import { listAfsluttedeSæsoner, hentSingleWeekRekord } from '@/lib/historie'
+import { listAfsluttedeSæsoner, hentSingleWeekRekord, hentSæsonVinder } from '@/lib/historie'
+import type { BadgeType } from '@/lib/badges'
 import type { SæsonData } from '@/lib/profil'
 
 export const revalidate = 3600
@@ -37,20 +38,24 @@ export default async function ProfilPage({ params }: Props) {
   const sæsoner = profil.sæsoner
   const alleSæsonÅr = [...new Set(sæsoner.map(s => s.sæson))].sort().reverse()
 
-  // Check if this player holds any all-time single-week record (needed for Peak badge)
   const afsluttedeSæsoner = listAfsluttedeSæsoner()
-  const ugeRekorder = await Promise.all(
-    afsluttedeSæsoner.flatMap(s => [
-      hentSingleWeekRekord(s, 'bestball'),
-      hentSingleWeekRekord(s, 'managed'),
-      hentSingleWeekRekord(s, 'chopped'),
-    ])
-  )
-  const erUgeRekordHolder = ugeRekorder.some(
-    r => r !== null && r.username === profil.sleeperUsername
-  )
+  const leagueTypes = ['bestball', 'managed', 'chopped'] as const
 
-  const badges = beregnBadges(sæsoner, profil.sleeperUserId, { erUgeRekordHolder })
+  const [ugeRekorder, sæsonVindere] = await Promise.all([
+    Promise.all(afsluttedeSæsoner.flatMap(s => leagueTypes.map(t => hentSingleWeekRekord(s, t)))),
+    Promise.all(afsluttedeSæsoner.flatMap(s => leagueTypes.map(t => hentSæsonVinder(s, t)))),
+  ])
+
+  const erUgeRekordHolder = ugeRekorder.some(r => r?.username === profil.sleeperUsername)
+  const erSæsonVinder = sæsonVindere.some(r => r?.username === profil.sleeperUsername)
+
+  const peakRekord = ugeRekorder.find(r => r?.username === profil.sleeperUsername)
+  const tooltipOverrides: Partial<Record<BadgeType, string>> = {}
+  if (peakRekord) {
+    tooltipOverrides['peak'] = `Uge ${peakRekord.week} — ${peakRekord.leagueName} (${peakRekord.points.toFixed(2)} pts)`
+  }
+
+  const badges = beregnBadges(sæsoner, profil.sleeperUserId, { erUgeRekordHolder, erSæsonVinder })
 
   return (
     <div className="gfc-app">
@@ -85,7 +90,7 @@ export default async function ProfilPage({ params }: Props) {
           </div>
         </div>
 
-        <BadgeHylde badges={badges} />
+        <BadgeHylde badges={badges} tooltipOverrides={tooltipOverrides} />
 
         {sæsoner.length === 0 ? (
           <div style={{

@@ -1,6 +1,12 @@
 import { BADGES, type BadgeType } from '@/lib/badges'
 
-export default function BadgeHylde({ badges }: { badges: BadgeType[] }) {
+export default function BadgeHylde({
+  badges,
+  tooltipOverrides,
+}: {
+  badges: BadgeType[]
+  tooltipOverrides?: Partial<Record<BadgeType, string>>
+}) {
   if (badges.length === 0) return null
 
   return (
@@ -42,7 +48,7 @@ export default function BadgeHylde({ badges }: { badges: BadgeType[] }) {
               }}
               className="badge-tip"
               >
-                {b.beskrivelse}
+                {tooltipOverrides?.[id] ?? b.beskrivelse}
               </span>
             </div>
           )
