@@ -18,7 +18,7 @@ Herunder kan du se en præsentation af de VIP's, der spiller med:
       <div class="vip-card-name">Joey Wright</div>
       <div class="vip-card-fra eyebrow">FootballGuys.com</div>
       <p class="vip-card-bio">Joey Wright er næsten blevet til fast inventar i Guldbjergs Fantasy Challenge, da han har været med siden første år, og han er et perfekt valg som Community Ambassador.</p>
-      <a href="https://x.com/thejoeywright" target="_blank" rel="noopener noreferrer" class="vip-social-link">Follow on X →</a>
+      <a href="https://x.com/thejoeywright" target="_blank" rel="noopener noreferrer" class="vip-social-link">Følg Joey på Twitter/X →</a>
     </div>
   </div>
 </article>
