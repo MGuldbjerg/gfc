@@ -15,6 +15,7 @@ type TilmeldingRow = {
   display_name: string
   username: string
   er_amerikansk_vip: number
+  er_dansk_vip: number
   undgaa_amerikansk_vip: number
 }
 
@@ -33,7 +34,8 @@ export async function POST(req: NextRequest) {
             p.id AS profile_id,
             p.display_name,
             p.username,
-            p.er_amerikansk_vip
+            p.er_amerikansk_vip,
+            p.er_dansk_vip
        FROM registrations r
        JOIN profiles p ON p.id = r.profile_id
       WHERE r.season = ? AND r.status = 'registered'`,
@@ -51,6 +53,7 @@ export async function POST(req: NextRequest) {
     registrationId: t.registration_id,
     preferredTypes: parsePreferredTypes(t.preferred_types),
     erAmerikanskVip: Boolean(t.er_amerikansk_vip),
+    erDanskVip: Boolean(t.er_dansk_vip),
     undgaaAmerikanskVip: Boolean(t.undgaa_amerikansk_vip),
   }))
 

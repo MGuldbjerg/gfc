@@ -1,8 +1,12 @@
 'use client'
 
 import { useState } from 'react'
+import { useRouter } from 'next/navigation'
 
 type Profil = { display_name: string; username: string; id: string }
+
+// A profile carries at most one VIP tag; the two flags are mutually exclusive.
+type VipType = 'amerikansk' | 'dansk' | 'none'
 
 export interface Tilmelding {
   id: string
@@ -13,6 +17,7 @@ export interface Tilmelding {
   created_at: string
   nyhedsbrev: boolean
   erAmerikanskVip: boolean
+  erDanskVip: boolean
   undgaaAmerikanskVip: boolean
   profiles: Profil | Profil[] | null
 }
@@ -22,14 +27,19 @@ function getProfil(profiles: Tilmelding['profiles']): Profil | null {
   return Array.isArray(profiles) ? profiles[0] ?? null : profiles
 }
 
+function vipTypeOf(t: Tilmelding): VipType {
+  return t.erAmerikanskVip ? 'amerikansk' : t.erDanskVip ? 'dansk' : 'none'
+}
+
 const FILTERKNAPPER = ['alle', 'bestball', 'managed', 'chopped']
 const RÆKKEVALGMULIGHEDER = ['bestball', 'managed', 'chopped']
 
 export default function AdminTilmeldinger({ tilmeldinger }: { tilmeldinger: Tilmelding[] }) {
+  const router = useRouter()
   const [filter, setFilter] = useState<string>('alle')
   const [søgning, setSøgning] = useState('')
-  const [vipState, setVipState] = useState<Record<string, boolean>>(
-    Object.fromEntries(tilmeldinger.map(t => [getProfil(t.profiles)?.id ?? '', t.erAmerikanskVip]))
+  const [vipState, setVipState] = useState<Record<string, VipType>>(
+    Object.fromEntries(tilmeldinger.map(t => [getProfil(t.profiles)?.id ?? '', vipTypeOf(t)]))
   )
   const [editId, setEditId] = useState<string | null>(null)
   const [editData, setEditData] = useState<{
@@ -41,14 +51,59 @@ export default function AdminTilmeldinger({ tilmeldinger }: { tilmeldinger: Tilm
   const [editFejl, setEditFejl] = useState('')
   const [localUpdates, setLocalUpdates] = useState<Record<string, Partial<Tilmelding & { display_name: string; username: string }>>>({})
 
-  async function toggleVip(profileId: string, current: boolean) {
-    const næste = !current
+  // Manual "add player" form
+  const [tilføjÅben, setTilføjÅben] = useState(false)
+  const [tilføjData, setTilføjData] = useState<{
+    displayName: string
+    sleeperUsername: string
+    preferredTypes: string[]
+    vip: VipType
+    undgaaAmerikanskVip: boolean
+  }>({ displayName: '', sleeperUsername: '', preferredTypes: [], vip: 'none', undgaaAmerikanskVip: false })
+  const [tilføjGemmer, setTilføjGemmer] = useState(false)
+  const [tilføjFejl, setTilføjFejl] = useState('')
+
+  // Clicking a VIP flag sets that type, or clears it if it was already active.
+  // The two flags are mutually exclusive, so this also clears the other one.
+  async function setVip(profileId: string, klikket: 'amerikansk' | 'dansk') {
+    const nuværende = vipState[profileId] ?? 'none'
+    const næste: VipType = nuværende === klikket ? 'none' : klikket
     setVipState(prev => ({ ...prev, [profileId]: næste }))
     await fetch('/api/admin/profil/vip', {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ profileId, erAmerikanskVip: næste }),
+      body: JSON.stringify({ profileId, vip: næste }),
     })
+  }
+
+  function toggleTilføjRække(type: string) {
+    setTilføjData(prev => ({
+      ...prev,
+      preferredTypes: prev.preferredTypes.includes(type)
+        ? prev.preferredTypes.filter(r => r !== type)
+        : [...prev.preferredTypes, type],
+    }))
+  }
+
+  async function tilføjDeltager() {
+    setTilføjGemmer(true)
+    setTilføjFejl('')
+    try {
+      const res = await fetch('/api/admin/tilmelding', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(tilføjData),
+      })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error ?? 'Ukendt fejl')
+      setTilføjData({ displayName: '', sleeperUsername: '', preferredTypes: [], vip: 'none', undgaaAmerikanskVip: false })
+      setTilføjÅben(false)
+      router.refresh()
+    } catch (e) {
+      setTilføjFejl(e instanceof Error ? e.message : 'Noget gik galt')
+    } finally {
+      setTilføjGemmer(false)
+    }
   }
 
   function startEdit(t: Tilmelding) {
@@ -122,6 +177,95 @@ export default function AdminTilmeldinger({ tilmeldinger }: { tilmeldinger: Tilm
         <span className="dash" />
       </div>
 
+      <div style={{ marginBottom: 16 }}>
+        <button
+          onClick={() => { setTilføjÅben(o => !o); setTilføjFejl('') }}
+          className="btn ghost"
+        >
+          {tilføjÅben ? '✕ Annullér' : '+ Tilføj deltager manuelt'}
+        </button>
+
+        {tilføjÅben && (
+          <div className="lb-col" style={{ marginTop: 12, padding: '20px 24px' }}>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 16, alignItems: 'flex-end' }}>
+              <label style={{ display: 'flex', flexDirection: 'column', gap: 5, flex: 1, minWidth: 160 }}>
+                <span className="eyebrow">Visningsnavn</span>
+                <input
+                  className="gfc-input"
+                  value={tilføjData.displayName}
+                  onChange={e => setTilføjData(p => ({ ...p, displayName: e.target.value }))}
+                />
+              </label>
+              <label style={{ display: 'flex', flexDirection: 'column', gap: 5, flex: 1, minWidth: 160 }}>
+                <span className="eyebrow">Sleeper-brugernavn</span>
+                <input
+                  className="gfc-input mono"
+                  value={tilføjData.sleeperUsername}
+                  onChange={e => setTilføjData(p => ({ ...p, sleeperUsername: e.target.value }))}
+                />
+              </label>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
+                <span className="eyebrow">Rækker</span>
+                <div style={{ display: 'flex', gap: 8, alignItems: 'center', height: 38 }}>
+                  {RÆKKEVALGMULIGHEDER.map(type => (
+                    <label key={type} style={{ display: 'flex', alignItems: 'center', gap: 5, cursor: 'pointer', fontSize: 13 }}>
+                      <input
+                        type="checkbox"
+                        checked={tilføjData.preferredTypes.includes(type)}
+                        onChange={() => toggleTilføjRække(type)}
+                      />
+                      {type}
+                    </label>
+                  ))}
+                </div>
+              </div>
+            </div>
+
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 24, alignItems: 'center', marginTop: 16 }}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
+                <span className="eyebrow">VIP</span>
+                <div style={{ display: 'flex', gap: 12, alignItems: 'center', height: 24 }}>
+                  {([
+                    { v: 'none', label: 'Ingen' },
+                    { v: 'amerikansk', label: '🇺🇸 Amerikansk' },
+                    { v: 'dansk', label: '🇩🇰 Dansk' },
+                  ] as const).map(({ v, label }) => (
+                    <label key={v} style={{ display: 'flex', alignItems: 'center', gap: 5, cursor: 'pointer', fontSize: 13 }}>
+                      <input
+                        type="radio"
+                        name="tilføj-vip"
+                        checked={tilføjData.vip === v}
+                        onChange={() => setTilføjData(p => ({ ...p, vip: v }))}
+                      />
+                      {label}
+                    </label>
+                  ))}
+                </div>
+              </div>
+              <label style={{ display: 'flex', alignItems: 'center', gap: 6, cursor: 'pointer', fontSize: 13, marginTop: 18 }}>
+                <input
+                  type="checkbox"
+                  checked={tilføjData.undgaaAmerikanskVip}
+                  onChange={e => setTilføjData(p => ({ ...p, undgaaAmerikanskVip: e.target.checked }))}
+                />
+                Undgå amerikansk VIP i samme liga
+              </label>
+            </div>
+
+            <div style={{ display: 'flex', alignItems: 'center', gap: 16, marginTop: 16 }}>
+              <button
+                className="btn"
+                disabled={tilføjGemmer || !tilføjData.displayName.trim() || !tilføjData.sleeperUsername.trim()}
+                onClick={tilføjDeltager}
+              >
+                {tilføjGemmer ? 'Tilføjer…' : 'Tilføj deltager'}
+              </button>
+              {tilføjFejl && <p style={{ color: 'var(--accent)', fontSize: 13, margin: 0 }}>{tilføjFejl}</p>}
+            </div>
+          </div>
+        )}
+      </div>
+
       <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10, marginBottom: 16 }}>
         <input
           type="text"
@@ -161,6 +305,7 @@ export default function AdminTilmeldinger({ tilmeldinger }: { tilmeldinger: Tilm
               <th>Status</th>
               <th className="c">Mail</th>
               <th className="c">🇺🇸 VIP</th>
+              <th className="c">🇩🇰 VIP</th>
               <th className="c">Undgå 🇺🇸</th>
               <th>Tilmeldt</th>
               <th></th>
@@ -169,7 +314,7 @@ export default function AdminTilmeldinger({ tilmeldinger }: { tilmeldinger: Tilm
           <tbody>
             {filtrerede.length === 0 ? (
               <tr>
-                <td colSpan={10} style={{ textAlign: 'center', padding: '32px', color: 'var(--muted)' }}>
+                <td colSpan={11} style={{ textAlign: 'center', padding: '32px', color: 'var(--muted)' }}>
                   Ingen tilmeldinger
                 </td>
               </tr>
@@ -210,11 +355,22 @@ export default function AdminTilmeldinger({ tilmeldinger }: { tilmeldinger: Tilm
                     <td className="c">
                       {profil && (
                         <button
-                          onClick={() => toggleVip(profil.id, vipState[profil.id] ?? false)}
-                          title={vipState[profil.id] ? 'Marker som ikke-VIP' : 'Marker som amerikansk VIP'}
-                          style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 16, opacity: vipState[profil.id] ? 1 : 0.25, padding: 0 }}
+                          onClick={() => setVip(profil.id, 'amerikansk')}
+                          title={vipState[profil.id] === 'amerikansk' ? 'Fjern amerikansk VIP' : 'Marker som amerikansk VIP'}
+                          style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 16, opacity: vipState[profil.id] === 'amerikansk' ? 1 : 0.25, padding: 0 }}
                         >
                           🇺🇸
+                        </button>
+                      )}
+                    </td>
+                    <td className="c">
+                      {profil && (
+                        <button
+                          onClick={() => setVip(profil.id, 'dansk')}
+                          title={vipState[profil.id] === 'dansk' ? 'Fjern dansk VIP' : 'Marker som dansk VIP'}
+                          style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 16, opacity: vipState[profil.id] === 'dansk' ? 1 : 0.25, padding: 0 }}
+                        >
+                          🇩🇰
                         </button>
                       )}
                     </td>
@@ -237,7 +393,7 @@ export default function AdminTilmeldinger({ tilmeldinger }: { tilmeldinger: Tilm
 
                   {isEditing && (
                     <tr key={`${t.id}-edit`}>
-                      <td colSpan={10} style={{ padding: '16px 20px 20px', background: 'var(--bg-2)', borderBottom: '2px solid var(--line)' }}>
+                      <td colSpan={11} style={{ padding: '16px 20px 20px', background: 'var(--bg-2)', borderBottom: '2px solid var(--line)' }}>
                         <div style={{ display: 'flex', flexWrap: 'wrap', gap: 16, alignItems: 'flex-end' }}>
                           <label style={{ display: 'flex', flexDirection: 'column', gap: 5, flex: 1, minWidth: 160 }}>
                             <span className="eyebrow">Visningsnavn</span>

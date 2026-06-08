@@ -11,6 +11,7 @@ export interface Deltager {
   // their personal rank of that type (lower index = higher priority).
   preferredTypes: LeagueType[]
   erAmerikanskVip?: boolean       // admin-set: this person is a US industry guest
+  erDanskVip?: boolean            // admin-set: this person is a Danish VIP guest (no avoidance — the opt-out is US-only)
   undgaaAmerikanskVip?: boolean   // user preference: don't place in same league as US VIP
   pinned?: boolean                // set in results for VIP-pinned people
 }

@@ -15,7 +15,7 @@ if (!url || !authToken) {
 
 const client = createClient({ url, authToken })
 
-const sql = readFileSync(join(__dirname, '..', 'supabase', 'turso-schema.sql'), 'utf8')
+const sql = readFileSync(join(__dirname, '..', 'db', 'schema.sql'), 'utf8')
 
 const stripped = sql
   .split('\n')

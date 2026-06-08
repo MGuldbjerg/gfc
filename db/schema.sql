@@ -1,8 +1,8 @@
 -- GFC Platform — Turso (libSQL/SQLite) schema
--- Ported from supabase/schema.sql
 -- Apply with: node scripts/apply-schema.mjs
 
--- Participant profiles. id matches Supabase Auth user id (kept for auth only).
+-- Participant profiles. id matches the Auth.js user id for self-signups; for
+-- admin-added players (no login) it is a freestanding uuid.
 CREATE TABLE IF NOT EXISTS profiles (
   id TEXT PRIMARY KEY,
   username TEXT UNIQUE NOT NULL,                          -- Sleeper username
@@ -12,6 +12,7 @@ CREATE TABLE IF NOT EXISTS profiles (
   vis_badges INTEGER NOT NULL DEFAULT 1,                  -- 0/1 boolean (Phase 3.1)
   nyhedsbrev INTEGER NOT NULL DEFAULT 0,                  -- 0/1 boolean (Phase 3.1)
   er_amerikansk_vip INTEGER NOT NULL DEFAULT 0,           -- 0/1 — admin-set tag for US industry guests
+  er_dansk_vip INTEGER NOT NULL DEFAULT 0,                -- 0/1 — admin-set tag for Danish VIP guests (mutually exclusive with US)
   created_at TEXT NOT NULL DEFAULT (datetime('now')),
   updated_at TEXT NOT NULL DEFAULT (datetime('now'))
 );

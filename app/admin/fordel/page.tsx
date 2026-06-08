@@ -274,6 +274,9 @@ export default function FordelPage() {
                           {d.erAmerikanskVip && (
                             <span title="Amerikansk VIP" style={{ fontSize: 13 }}>🇺🇸</span>
                           )}
+                          {d.erDanskVip && (
+                            <span title="Dansk VIP" style={{ fontSize: 13 }}>🇩🇰</span>
+                          )}
                           {d.pinned && (
                             <span title="VIP-pin" style={{ color: 'var(--accent)', fontSize: 11 }}>★</span>
                           )}
@@ -325,7 +328,7 @@ export default function FordelPage() {
                     )}
                   </p>
                   <p className="eyebrow" style={{ marginTop: 6 }}>
-                    Ikke tilfreds? Klik "Træk ny fordeling" for en ny tilfældig fordeling.
+                    Ikke tilfreds? Klik &quot;Træk ny fordeling&quot; for en ny tilfældig fordeling.
                   </p>
                 </div>
                 <button
