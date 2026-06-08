@@ -17,8 +17,8 @@ Hver `.md`-fil i `content/sider/` bliver til en side på sitet. Filnavnet bliver
 
 | Fil | Bliver til |
 |---|---|
-| `content/sider/regler.md` | `https://gfc-seven.vercel.app/regler` |
-| `content/sider/sponsorer.md` | `https://gfc-seven.vercel.app/sponsorer` |
+| `content/sider/regler.md` | `https://fantasychallenge.dk/regler` |
+| `content/sider/sponsorer.md` | `https://fantasychallenge.dk/sponsorer` |
 
 ### Sådan tilføjer du en helt ny side
 
