@@ -1,6 +1,16 @@
 import Link from 'next/link'
 import { tekst, t } from '@/content/tekst'
 import { CURRENT_SEASON } from '@/lib/leagues'
+import { queryOne } from '@/lib/turso'
+
+export const revalidate = 3600
+
+type StatsRow = {
+  total: number
+  bestball: number
+  managed: number
+  chopped: number
+}
 
 const TRACKS = [
   {
@@ -26,7 +36,17 @@ const TRACKS = [
   },
 ]
 
-export default function HomePage() {
+export default async function HomePage() {
+  const stats = await queryOne<StatsRow>(
+    `SELECT
+       COUNT(*) AS total,
+       SUM(CASE WHEN preferred_types LIKE '%bestball%' THEN 1 ELSE 0 END) AS bestball,
+       SUM(CASE WHEN preferred_types LIKE '%managed%'  THEN 1 ELSE 0 END) AS managed,
+       SUM(CASE WHEN preferred_types LIKE '%chopped%'  THEN 1 ELSE 0 END) AS chopped
+     FROM registrations
+     WHERE season = ?`,
+    [CURRENT_SEASON]
+  ) ?? { total: 0, bestball: 0, managed: 0, chopped: 0 }
   return (
     <div className="gfc-app">
       {/* Hero */}
@@ -71,6 +91,36 @@ export default function HomePage() {
                     <div className="stat-label">{h.label}</div>
                   </div>
                 ))}
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Live signup counts */}
+      <section className="section signup-counts">
+        <div className="container">
+          <div className="kicker-strip">
+            <span className="dash" />
+            <span className="eyebrow">Sæson {CURRENT_SEASON} · Tilmeldinger</span>
+          </div>
+          <div className="counts-grid">
+            <div className="count-item count-item--total">
+              <div className="count-num">{stats.total}</div>
+              <div className="count-label">tilmeldte i alt</div>
+            </div>
+            <div className="counts-split">
+              <div className="count-item">
+                <div className="count-num">{stats.bestball}</div>
+                <div className="count-label">Bestball</div>
+              </div>
+              <div className="count-item">
+                <div className="count-num">{stats.managed}</div>
+                <div className="count-label">Managed</div>
+              </div>
+              <div className="count-item">
+                <div className="count-num">{stats.chopped}</div>
+                <div className="count-label">Chopped</div>
               </div>
             </div>
           </div>
