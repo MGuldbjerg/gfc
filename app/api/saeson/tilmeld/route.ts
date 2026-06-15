@@ -7,6 +7,7 @@ import { auth } from '@/auth'
 import { execute, queryOne } from '@/lib/turso'
 import { sendVelkomstMail } from '@/lib/brevo'
 import { CURRENT_SEASON } from '@/lib/leagues'
+import { evaluateSignupGate } from '@/lib/seasonSettings'
 
 export async function POST(req: NextRequest) {
   const session = await auth()
@@ -15,9 +16,25 @@ export async function POST(req: NextRequest) {
   }
 
   const body = await req.json()
-  const { valgteRækker, undgaaAmerikanskVip = false } = body
+  const { valgteRækker, undgaaAmerikanskVip = false, invite = null } = body
   if (!Array.isArray(valgteRækker) || valgteRækker.length === 0) {
     return NextResponse.json({ error: 'Vælg mindst én række' }, { status: 400 })
+  }
+
+  // Signup deadline gate. Existing registrants can still update their picks
+  // after the deadline; only brand-new registrations are blocked.
+  const existingReg = await queryOne<{ id: string }>(
+    'SELECT id FROM registrations WHERE profile_id = ? AND season = ?',
+    [session.user.id, CURRENT_SEASON]
+  )
+  if (!existingReg) {
+    const gate = await evaluateSignupGate(CURRENT_SEASON, typeof invite === 'string' ? invite : null)
+    if (!gate.allowed) {
+      return NextResponse.json(
+        { error: 'Tilmeldingen er lukket. Kontakt Mikkel hvis du gerne vil med.' },
+        { status: 403 }
+      )
+    }
   }
 
   const profile = await queryOne<{ display_name: string }>(
@@ -27,11 +44,6 @@ export async function POST(req: NextRequest) {
   if (!profile) {
     return NextResponse.json({ error: 'Du skal oprette en profil først.' }, { status: 400 })
   }
-
-  const existing = await queryOne<{ id: string }>(
-    'SELECT id FROM registrations WHERE profile_id = ? AND season = ?',
-    [session.user.id, CURRENT_SEASON]
-  )
 
   await execute(
     `INSERT INTO registrations (id, profile_id, season, preferred_types, status, undgaa_amerikansk_vip)
@@ -44,7 +56,7 @@ export async function POST(req: NextRequest) {
   )
 
   // Only send welcome mail on first registration, not on updates.
-  if (!existing) {
+  if (!existingReg) {
     sendVelkomstMail({
       email: session.user.email,
       displayName: profile.display_name,

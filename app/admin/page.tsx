@@ -75,7 +75,7 @@ export default async function AdminPage() {
         <p className="sub">Tilmeldingsoversigt og ligafordeling</p>
       </div>
 
-      <AdminTabs tilmeldinger={tilmeldinger} stats={stats} />
+      <AdminTabs tilmeldinger={tilmeldinger} stats={stats} season={CURRENT_SEASON} />
     </>
   )
 }

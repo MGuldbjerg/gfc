@@ -2,8 +2,21 @@ import Link from 'next/link'
 import { tekst, t } from '@/content/tekst'
 import { CURRENT_SEASON } from '@/lib/leagues'
 import { queryOne } from '@/lib/turso'
+import { getSeasonSettings } from '@/lib/seasonSettings'
+import SignupCountdown from './SignupCountdown'
 
 export const revalidate = 3600
+
+const COUNTDOWN_WINDOW_MS = 30 * 24 * 60 * 60 * 1000 // show the countdown within 30 days of the deadline
+
+// Returns the deadline ISO only when it is in the future and within the window.
+async function countdownDeadline(): Promise<string | null> {
+  const settings = await getSeasonSettings(CURRENT_SEASON)
+  if (!settings?.signupDeadline) return null
+  const ms = new Date(settings.signupDeadline).getTime() - Date.now()
+  if (Number.isNaN(ms) || ms <= 0 || ms > COUNTDOWN_WINDOW_MS) return null
+  return settings.signupDeadline
+}
 
 type StatsRow = {
   total: number
@@ -47,6 +60,7 @@ export default async function HomePage() {
      WHERE season = ?`,
     [CURRENT_SEASON]
   ) ?? { total: 0, bestball: 0, managed: 0, chopped: 0 }
+  const deadline = await countdownDeadline()
   return (
     <div className="gfc-app">
       {/* Hero */}
@@ -96,6 +110,9 @@ export default async function HomePage() {
           </div>
         </div>
       </section>
+
+      {/* Signup deadline countdown — only within 30 days of the deadline */}
+      {deadline && <SignupCountdown deadline={deadline} />}
 
       {/* Live signup counts */}
       <section className="section signup-counts">

@@ -4,8 +4,9 @@ import { useState } from 'react'
 import Link from 'next/link'
 import AdminTilmeldinger, { type Tilmelding } from './AdminTilmeldinger'
 import { AdminAnnoncering } from './AdminAnnoncering'
+import { AdminSaeson } from './AdminSaeson'
 
-type Tab = 'tilmeldinger' | 'email'
+type Tab = 'tilmeldinger' | 'email' | 'saeson'
 
 interface Stats {
   total: number
@@ -18,9 +19,11 @@ interface Stats {
 export function AdminTabs({
   tilmeldinger,
   stats,
+  season,
 }: {
   tilmeldinger: Tilmelding[]
   stats: Stats
+  season: string
 }) {
   const [aktiv, setAktiv] = useState<Tab>('tilmeldinger')
 
@@ -38,6 +41,12 @@ export function AdminTabs({
           onClick={() => setAktiv('email')}
         >
           E-mail
+        </button>
+        <button
+          className={`season-pill${aktiv === 'saeson' ? ' active' : ''}`}
+          onClick={() => setAktiv('saeson')}
+        >
+          Sæson
         </button>
       </div>
 
@@ -73,6 +82,13 @@ export function AdminTabs({
       {aktiv === 'email' && (
         <>
           <AdminAnnoncering />
+          <div style={{ paddingBottom: 80 }} />
+        </>
+      )}
+
+      {aktiv === 'saeson' && (
+        <>
+          <AdminSaeson season={season} />
           <div style={{ paddingBottom: 80 }} />
         </>
       )}

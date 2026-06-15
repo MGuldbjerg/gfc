@@ -51,6 +51,17 @@ CREATE TABLE IF NOT EXISTS badges (
   UNIQUE(profile_id, badge_type, season)
 );
 
+-- Per-season admin settings: signup deadline + an invite code that bypasses
+-- the deadline for late entrants. One row per season; edited from the admin
+-- "Sæson" tab. signup_deadline is a tz-aware ISO 8601 instant (e.g.
+-- '2026-07-03T18:00:00+02:00'); a NULL deadline means signups are open.
+CREATE TABLE IF NOT EXISTS season_settings (
+  season          TEXT PRIMARY KEY,                      -- '2026', ...
+  signup_deadline TEXT,                                  -- ISO 8601 with offset, or NULL = open
+  invite_code     TEXT,                                  -- bypass token for late entrants
+  updated_at      TEXT NOT NULL DEFAULT (datetime('now'))
+);
+
 CREATE INDEX IF NOT EXISTS idx_registrations_season ON registrations(season);
 CREATE INDEX IF NOT EXISTS idx_registrations_profile ON registrations(profile_id);
 CREATE INDEX IF NOT EXISTS idx_badges_profile ON badges(profile_id);
