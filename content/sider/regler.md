@@ -45,7 +45,7 @@ Slutspillet vil foregå sådan, at når ligaerne kun har 2 hold tilbage, vil den
 
 ## Drafts
 
-- **Slow drafts** starter sidste weekend i juni / første weekend i juli. Præcis dato kommer, når vi er tættere på.
+- **Slow drafts** starter 4. juli. Ligafordeling sker fredag den 3. juli.
 - 8 timer per pick. Pause om natten (typisk 22:00–08:00).
 - Vær opmærksom på din Sleeper-app, så du ikke autodrafter. Appen har nogle gange problemer med notifikationer, når der er allerflest drafts verden over.
 

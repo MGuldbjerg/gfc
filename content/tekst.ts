@@ -55,13 +55,13 @@ export const tekst = {
     tidslinjeTitel: 'Sådan ser sæsonen ud',
     tidslinje: [
       { tid: 'Maj–juni', hvad: 'Tilmelding åben' },
-      { tid: 'Sidste weekend i juni', hvad: 'Slow drafts starter' },
+      { tid: '4. juli', hvad: 'Slow drafts starter' },
       { tid: 'September', hvad: 'NFL-sæsonen starter' },
       { tid: 'Uge 15–17', hvad: 'Slutspil og finale' },
     ],
 
     finalCtaTitel: 'Klar til at spille med?',
-    finalCtaTekst: 'Slow drafts starter i juni. Tilmeld dig nu, vælg dine rækker, og lad os fordele dig i en liga.',
+    finalCtaTekst: 'Slow drafts starter 4. juli. Tilmeld dig nu, vælg dine rækker, og lad os fordele dig i en liga.',
     finalCta: 'Tilmeld dig GFC {sæson}',
   },
 
