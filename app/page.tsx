@@ -3,6 +3,7 @@ import { tekst, t } from '@/content/tekst'
 import { CURRENT_SEASON } from '@/lib/leagues'
 import { queryOne } from '@/lib/turso'
 import { getSeasonSettings } from '@/lib/seasonSettings'
+import { listAfsluttedeSæsoner, hentSæsonNøgletal } from '@/lib/historie'
 import SignupCountdown from './SignupCountdown'
 
 export const revalidate = 3600
@@ -61,6 +62,20 @@ export default async function HomePage() {
     [CURRENT_SEASON]
   ) ?? { total: 0, bestball: 0, managed: 0, chopped: 0 }
   const deadline = await countdownDeadline()
+
+  // Hero stats, live from Sleeper for the latest completed season. Falls back to
+  // the static text if there is no finished season yet. Cached hourly via
+  // `revalidate` above, so this only hits Sleeper once per hour.
+  const afsluttede = listAfsluttedeSæsoner()
+  const senesteSæson = afsluttede[0]
+  const nøgletal = senesteSæson ? await hentSæsonNøgletal(senesteSæson) : null
+  const hojdepunkter = nøgletal
+    ? [
+        { tal: String(afsluttede.length), label: 'Sæsoner kørt' },
+        { tal: String(nøgletal.deltagere), label: `Deltagere i ${senesteSæson}` },
+        { tal: String(nøgletal.ligaer), label: 'Sleeper-ligaer' },
+      ]
+    : tekst.landing.hojdepunkter
   return (
     <div className="gfc-app">
       {/* Hero */}
@@ -99,7 +114,7 @@ export default async function HomePage() {
               </div>
 
               <div className="stat-blocks">
-                {tekst.landing.hojdepunkter.map(h => (
+                {hojdepunkter.map(h => (
                   <div key={h.label} className="stat-block">
                     <div className="stat-num">{h.tal}</div>
                     <div className="stat-label">{h.label}</div>
