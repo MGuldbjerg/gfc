@@ -2,12 +2,14 @@ import Link from 'next/link'
 import {
   listAfsluttedeSæsoner,
   hentSæsonOversigt,
+  hentSæsonNøgletal,
   hentAllTimeOversigt,
   hentBedsteSæsonRekorder,
   hentSæsonVinder,
   hentSingleWeekRekord,
   hentManagedSlutstilling,
   type AllTimeEntry,
+  type SæsonNøgletal,
   type SæsonRekord,
   type SæsonVinder,
   type UgeRekord,
@@ -97,7 +99,8 @@ async function SæsonView({
   sæsoner: string[]
   valgtSæson: string
 }) {
-  const [oversigt, bbVinder, mVinder, cVinder, bbRekord, mRekord, cRekord, managedSlut] = await Promise.all([
+  const [nøgletal, oversigt, bbVinder, mVinder, cVinder, bbRekord, mRekord, cRekord, managedSlut] = await Promise.all([
+    hentSæsonNøgletal(valgtSæson),
     hentSæsonOversigt(valgtSæson),
     hentSæsonVinder(valgtSæson, 'bestball'),
     hentSæsonVinder(valgtSæson, 'managed'),
@@ -123,6 +126,9 @@ async function SæsonView({
           </Link>
         ))}
       </div>
+
+      {/* Season key numbers — before the per-user stats */}
+      <Nøgletal nøgletal={nøgletal} />
 
       {/* Winners */}
       {(bbVinder || mVinder || cVinder) && (
@@ -171,6 +177,33 @@ async function SæsonView({
         )}
       </div>
     </div>
+  )
+}
+
+function Nøgletal({ nøgletal }: { nøgletal: SæsonNøgletal }) {
+  const tal: { value: number; label: string }[] = [
+    { value: nøgletal.deltagere, label: 'Unikke deltagere' },
+    { value: nøgletal.ligaer, label: 'Ligaer' },
+    { value: nøgletal.hold, label: 'Hold' },
+  ]
+  return (
+    <>
+      <div className="lb-section-head">
+        Sæsonen i tal
+        <span className="dash" />
+      </div>
+      <div className="stat-blocks" style={{ gridTemplateColumns: 'repeat(3, 1fr)', marginBottom: 8 }}>
+        {tal.map(({ value, label }) => (
+          <div key={label} className="stat-block">
+            <div className="stat-num" style={{ fontSize: 44 }}>{value}</div>
+            <div className="stat-label">{label}</div>
+          </div>
+        ))}
+      </div>
+      <p className="eyebrow" style={{ marginBottom: 8 }}>
+        En deltager kan spille flere rækker og fylde flere holdpladser — »unikke deltagere« tæller hver person én gang.
+      </p>
+    </>
   )
 }
 

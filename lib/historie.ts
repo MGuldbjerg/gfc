@@ -23,6 +23,33 @@ export function listAfsluttedeSæsoner(): Sæson[] {
   return listSæsoner().filter(s => s < CURRENT_SEASON)
 }
 
+export interface SæsonNøgletal {
+  season: Sæson
+  ligaer: number        // number of Sleeper leagues that season
+  hold: number          // total teams (rosters) across all leagues
+  deltagere: number     // unique humans, deduped by Sleeper owner id (incl. co-owners)
+}
+
+// Season "by the numbers": leagues, teams, and the deduped human head count.
+// A person who plays multiple rows fills several team slots but counts once
+// toward `deltagere` — that's the honest participant number.
+export async function hentSæsonNøgletal(season: Sæson): Promise<SæsonNøgletal> {
+  const leagues = ALL_LEAGUES.filter(l => l.season === season)
+  const rosterLists = await Promise.all(leagues.map(l => fetchRosters(l.sleeperId)))
+
+  const owners = new Set<string>()
+  let hold = 0
+  for (const rosters of rosterLists) {
+    hold += rosters.length
+    for (const r of rosters) {
+      if (r.owner_id) owners.add(r.owner_id)
+      for (const co of r.co_owners ?? []) owners.add(co)
+    }
+  }
+
+  return { season, ligaer: leagues.length, hold, deltagere: owners.size }
+}
+
 export interface SæsonOversigt {
   season: Sæson
   bestball: LeaderboardResult

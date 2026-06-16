@@ -14,6 +14,7 @@ export interface SleeperUser {
 export interface SleeperRoster {
   roster_id: number
   owner_id: string
+  co_owners?: string[] | null
   players: string[] | null
   settings: {
     wins?: number
