@@ -15,6 +15,7 @@ export const tekst = {
     historie: 'Historie',
     draftstatistik: 'Draftstatistik',
     regler: 'Regler',
+    faq: 'FAQ',
     sponsorer: 'Sponsorer',
     tilmeldCta: 'Tilmeld {sæson}',
   },

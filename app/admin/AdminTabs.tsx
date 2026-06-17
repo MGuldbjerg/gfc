@@ -4,9 +4,10 @@ import { useState } from 'react'
 import Link from 'next/link'
 import AdminTilmeldinger, { type Tilmelding } from './AdminTilmeldinger'
 import { AdminAnnoncering } from './AdminAnnoncering'
+import { AdminUgeresume } from './AdminUgeresume'
 import { AdminSaeson } from './AdminSaeson'
 
-type Tab = 'tilmeldinger' | 'email' | 'saeson'
+type Tab = 'tilmeldinger' | 'ugeresume' | 'email' | 'saeson'
 
 interface Stats {
   total: number
@@ -35,6 +36,12 @@ export function AdminTabs({
           onClick={() => setAktiv('tilmeldinger')}
         >
           Tilmeldinger
+        </button>
+        <button
+          className={`season-pill${aktiv === 'ugeresume' ? ' active' : ''}`}
+          onClick={() => setAktiv('ugeresume')}
+        >
+          Ugeresumé
         </button>
         <button
           className={`season-pill${aktiv === 'email' ? ' active' : ''}`}
@@ -75,6 +82,13 @@ export function AdminTabs({
           </div>
 
           <AdminTilmeldinger tilmeldinger={tilmeldinger} />
+          <div style={{ paddingBottom: 80 }} />
+        </>
+      )}
+
+      {aktiv === 'ugeresume' && (
+        <>
+          <AdminUgeresume />
           <div style={{ paddingBottom: 80 }} />
         </>
       )}

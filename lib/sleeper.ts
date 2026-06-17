@@ -29,6 +29,21 @@ export interface SleeperRoster {
   }
 }
 
+export interface SleeperState {
+  week: number
+  season: string
+  season_type: string
+  leg: number
+}
+
+// Current NFL state (season, week). Used to suggest a default week for the
+// weekly-summary generator. Returns null on any failure — callers fall back.
+export async function fetchState(sport = 'nfl'): Promise<SleeperState | null> {
+  const res = await fetch(`${SLEEPER_BASE_URL}/state/${sport}`, { next: { revalidate: 3600 } })
+  if (!res.ok) return null
+  return res.json().catch(() => null)
+}
+
 export async function getUserByUsername(username: string): Promise<SleeperUser | null> {
   const res = await fetch(`${SLEEPER_BASE_URL}/user/${encodeURIComponent(username)}`)
   if (!res.ok) return null

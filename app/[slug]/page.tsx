@@ -4,11 +4,48 @@ import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
 import rehypeRaw from 'rehype-raw'
 import { listSlugs, loadSide } from '@/lib/sider'
+import { CURRENT_SEASON } from '@/lib/leagues'
+import { getSeasonSettings } from '@/lib/seasonSettings'
 
 export const dynamicParams = false
+// Markdown pages may embed {sæson} and {deadline}. We resolve those at render
+// time and revalidate periodically, so an admin deadline change shows up
+// without a redeploy.
+export const revalidate = 600
 
 export async function generateStaticParams() {
   return listSlugs().map(slug => ({ slug }))
+}
+
+// Formats an ISO-with-offset deadline as Danish wall-clock time, e.g.
+// "3. juli kl. 18:00". Returns a graceful fallback when no deadline is set.
+function formatDeadline(iso: string | null): string {
+  if (!iso) return 'endnu ikke fastsat'
+  const d = new Date(iso)
+  if (Number.isNaN(d.getTime())) return 'endnu ikke fastsat'
+  const dato = d.toLocaleDateString('da-DK', {
+    timeZone: 'Europe/Copenhagen', day: 'numeric', month: 'long',
+  })
+  const tid = d
+    .toLocaleTimeString('da-DK', {
+      timeZone: 'Europe/Copenhagen', hour: '2-digit', minute: '2-digit',
+    })
+    .replace('.', ':') // da-DK uses "18.00"; the site writes times with a colon
+  return `${dato} kl. ${tid}`
+}
+
+// Replaces {sæson} and {deadline} placeholders in markdown body text.
+// Only touches the database when the page actually uses {deadline}.
+async function substituerPladsholdere(body: string): Promise<string> {
+  let out = body
+  if (out.includes('{sæson}')) {
+    out = out.replace(/\{sæson\}/g, CURRENT_SEASON)
+  }
+  if (out.includes('{deadline}')) {
+    const settings = await getSeasonSettings(CURRENT_SEASON)
+    out = out.replace(/\{deadline\}/g, formatDeadline(settings?.signupDeadline ?? null))
+  }
+  return out
 }
 
 export async function generateMetadata(
@@ -28,6 +65,8 @@ export default async function MarkdownSide({
   const { slug } = await params
   const side = loadSide(slug)
   if (!side) notFound()
+
+  const body = await substituerPladsholdere(side.body)
 
   return (
     <div className="gfc-app">
@@ -64,7 +103,7 @@ export default async function MarkdownSide({
             [&_td]:border-b [&_td]:border-[var(--line-2)] [&_td]:px-3 [&_td]:py-2
           "
         >
-          <ReactMarkdown remarkPlugins={[remarkGfm]} rehypePlugins={[rehypeRaw]}>{side.body}</ReactMarkdown>
+          <ReactMarkdown remarkPlugins={[remarkGfm]} rehypePlugins={[rehypeRaw]}>{body}</ReactMarkdown>
         </article>
       </div>
     </div>

@@ -9,6 +9,7 @@ const links = [
   { href: '/vip', label: 'VIP' },
   { href: '/draft-statistik', label: tekst.nav.draftstatistik },
   { href: '/regler', label: tekst.nav.regler },
+  { href: '/faq', label: tekst.nav.faq },
   { href: '/sponsorer', label: 'Sponsorer og præmier' },
 ]
 
