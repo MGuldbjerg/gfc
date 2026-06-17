@@ -87,13 +87,12 @@ export default async function MarkdownSide({
             lineHeight: 1.7,
             letterSpacing: '-0.005em',
           }}
-          className="
+          className="markdown-body
             [&_h2]:font-[var(--font-display)] [&_h2]:text-[var(--ink)] [&_h2]:text-2xl [&_h2]:font-semibold [&_h2]:tracking-tight [&_h2]:mt-10 [&_h2]:mb-4
             [&_h3]:text-[var(--ink)] [&_h3]:text-xl [&_h3]:font-semibold [&_h3]:mt-8 [&_h3]:mb-3
             [&_p]:mb-4
             [&_ul]:list-disc [&_ul]:pl-6 [&_ul]:mb-4 [&_ul]:space-y-1
             [&_ol]:list-decimal [&_ol]:pl-6 [&_ol]:mb-4 [&_ol]:space-y-1
-            [&_a]:text-[var(--accent)] [&_a]:underline [&_a]:underline-offset-2
             [&_strong]:text-[var(--ink)] [&_strong]:font-semibold
             [&_code]:bg-[var(--bg-2)] [&_code]:border [&_code]:border-[var(--line)] [&_code]:px-1.5 [&_code]:py-0.5 [&_code]:rounded [&_code]:text-sm [&_code]:font-mono
             [&_blockquote]:border-l-4 [&_blockquote]:border-[var(--line)] [&_blockquote]:pl-5 [&_blockquote]:italic [&_blockquote]:text-[var(--muted)] [&_blockquote]:my-4
