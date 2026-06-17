@@ -99,8 +99,8 @@ export default async function HomePage() {
                 <h1 className="display">
                   Danmarks<br />
                   <em>største</em><br />
-                  fantasy<br />
-                  challenge
+                  fantasy-<br />
+                  konkurrence
                 </h1>
                 <div className="hero-cta-group">
                   <Link href="/log-ind" className="btn">
