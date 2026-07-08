@@ -63,7 +63,7 @@ export default async function LeaderboardPage() {
                 Sæsonen starter i september
               </h2>
               <p className="lede" style={{ marginTop: 16, maxWidth: '44ch' }}>
-                NFL-sæsonen er ikke startet endnu. Tilmeld dig nu — slow drafts starter 4. juli.
+                NFL-sæsonen er ikke startet endnu. Tilmeld dig nu — slow drafts starter 1. august, tilmelding lukker 29. juli!
               </p>
             </div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 16, alignItems: 'flex-start' }}>
