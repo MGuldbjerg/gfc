@@ -970,3 +970,76 @@ select.gfc-input { cursor: pointer; }
 .type-badge.bestball { color: oklch(50% 0.14 270); background: color-mix(in oklch, oklch(65% 0.14 270) 12%, var(--bg)); border-color: color-mix(in oklch, oklch(65% 0.14 270) 25%, transparent); }
 .type-badge.managed  { color: oklch(45% 0.14 230); background: color-mix(in oklch, oklch(65% 0.14 230) 12%, var(--bg)); border-color: color-mix(in oklch, oklch(65% 0.14 230) 25%, transparent); }
 .type-badge.chopped  { color: oklch(45% 0.14 310); background: color-mix(in oklch, oklch(65% 0.14 310) 12%, var(--bg)); border-color: color-mix(in oklch, oklch(65% 0.14 310) 25%, transparent); }
+
+/* ── Fordelingstjek ─────────────────────────────────────────────────────── */
+
+.tjek-head { display: flex; align-items: baseline; justify-content: space-between; gap: 16px; flex-wrap: wrap; margin-bottom: 4px; }
+.tjek-sub { color: var(--muted); font-size: 13px; margin: 4px 0 18px; }
+
+.tjek-stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 20px; }
+.tjek-stat { border-radius: var(--r-sm); padding: 12px 16px; border: 1px solid var(--line); }
+.tjek-stat .n { font-family: var(--font-mono); font-size: 22px; font-weight: 700; font-variant-numeric: tabular-nums; line-height: 1; }
+.tjek-stat .l { font-size: 12px; color: var(--muted); margin-top: 5px; }
+.tjek-stat.ok   { background: color-mix(in oklch, var(--pos) 10%, var(--bg)); border-color: color-mix(in oklch, var(--pos) 30%, transparent); }
+.tjek-stat.ok   .n { color: var(--pos); }
+.tjek-stat.warn { background: color-mix(in oklch, oklch(80% 0.15 80) 22%, var(--bg)); border-color: color-mix(in oklch, oklch(65% 0.15 80) 38%, transparent); }
+.tjek-stat.warn .n { color: oklch(45% 0.15 70); }
+.tjek-stat.bad  { background: color-mix(in oklch, var(--accent) 9%, var(--bg)); border-color: color-mix(in oklch, var(--accent) 30%, transparent); }
+.tjek-stat.bad  .n { color: var(--accent); }
+
+.tjek-toolbar { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 14px; flex-wrap: wrap; }
+.tjek-toggle { display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--ink-2); cursor: pointer; user-select: none; }
+.tjek-toggle input { accent-color: var(--ink); width: 15px; height: 15px; }
+
+.tjek-tier { margin-bottom: 22px; }
+.tjek-tier:last-child { margin-bottom: 0; }
+.tjek-tier-head { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; flex-wrap: wrap; padding: 0 2px 8px; border-bottom: 1px solid var(--line-2); margin-bottom: 2px; }
+.tjek-tier-name { font-size: 13.5px; font-weight: 700; color: var(--ink); }
+.tjek-tier-meta { font-family: var(--font-mono); font-size: 12px; color: var(--muted); font-variant-numeric: tabular-nums; }
+.tjek-tier-meta b { color: var(--ink-2); }
+.tjek-tier-meta .spread-flag { color: oklch(45% 0.15 70); font-weight: 700; font-family: var(--font-sans); }
+
+.tjek-table { width: 100%; border-collapse: collapse; }
+.tjek-table thead th { text-align: left; font-size: 11px; text-transform: uppercase; letter-spacing: 0.05em; color: var(--muted-2); font-weight: 600; padding: 8px; border-bottom: 1px solid var(--line-2); }
+.tjek-table thead th.num, .tjek-table td.num { text-align: right; }
+.tjek-table tbody tr { border-bottom: 1px solid var(--line-2); }
+.tjek-table tbody tr:last-child { border-bottom: none; }
+.tjek-table tbody tr:hover { background: var(--bg-2); }
+.tjek-table tbody td { padding: 9px 8px; vertical-align: middle; }
+
+.tjek-name { font-weight: 600; color: var(--ink); font-size: 13.5px; }
+.tjek-uname { font-family: var(--font-mono); font-size: 11px; color: var(--muted); margin-left: 6px; }
+
+.tjek-dots { display: inline-flex; gap: 5px; }
+.tjek-dot { width: 11px; height: 11px; border-radius: 999px; display: inline-block; border: 1.6px solid; }
+.tjek-dot.bestball { border-color: oklch(50% 0.14 270); }
+.tjek-dot.managed  { border-color: oklch(45% 0.14 230); }
+.tjek-dot.chopped  { border-color: oklch(45% 0.14 310); }
+.tjek-dot.filled.bestball { background: oklch(50% 0.14 270); }
+.tjek-dot.filled.managed  { background: oklch(45% 0.14 230); }
+.tjek-dot.filled.chopped  { background: oklch(45% 0.14 310); }
+.tjek-dot.hollow { background: transparent; opacity: 0.55; }
+
+.tjek-frac { font-family: var(--font-mono); font-size: 13.5px; font-variant-numeric: tabular-nums; font-weight: 700; }
+.tjek-frac.ok   { color: var(--pos); }
+.tjek-frac.warn { color: oklch(45% 0.15 70); }
+.tjek-frac.bad  { color: var(--accent); }
+
+.tjek-pill { display: inline-flex; align-items: center; gap: 5px; font-size: 11.5px; font-weight: 600; padding: 3px 9px; border-radius: 999px; }
+.tjek-pill.ok   { color: var(--pos); background: color-mix(in oklch, var(--pos) 10%, var(--bg)); border: 1px solid color-mix(in oklch, var(--pos) 30%, transparent); }
+.tjek-pill.warn { color: oklch(45% 0.15 70); background: color-mix(in oklch, oklch(80% 0.15 80) 22%, var(--bg)); border: 1px solid color-mix(in oklch, oklch(65% 0.15 80) 38%, transparent); }
+.tjek-pill.bad  { color: var(--accent); background: color-mix(in oklch, var(--accent) 9%, var(--bg)); border: 1px solid color-mix(in oklch, var(--accent) 30%, transparent); }
+
+.tjek-miss { font-size: 12px; color: var(--muted); }
+.tjek-miss b { color: var(--ink-2); font-weight: 600; }
+
+.tjek-legend { display: flex; flex-wrap: wrap; gap: 16px; margin-top: 18px; padding-top: 14px; border-top: 1px solid var(--line-2); font-size: 12px; color: var(--muted); }
+.tjek-legend .swatch { display: inline-flex; align-items: center; gap: 6px; }
+
+.tjek-satisfied { display: none; }
+.show-satisfied .tjek-satisfied { display: table-row; }
+
+@media (max-width: 640px) {
+  .tjek-stats { grid-template-columns: 1fr; }
+  .tjek-miss { display: none; }
+}

@@ -1,15 +1,193 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import Link from 'next/link'
 import { CURRENT_SEASON } from '@/lib/leagues'
-import type { FordelingsResultat, LigaForslag, Pin } from '@/lib/fordeling'
+import type { FordelingsResultat, LigaForslag, LeagueType, Pin } from '@/lib/fordeling'
 
 type DeltagerOption = {
   profile_id: string
   display_name: string
   username: string
   er_amerikansk_vip?: boolean
+}
+
+const TJEK_TYPES: LeagueType[] = ['bestball', 'managed', 'chopped']
+const TJEK_TYPE_LABELS: Record<LeagueType, string> = {
+  bestball: 'Bestball',
+  managed: 'Managed',
+  chopped: 'Chopped',
+}
+
+type TjekRow = {
+  profileId: string
+  displayName: string
+  sleeperUsername: string
+  wanted: LeagueType[]
+  got: LeagueType[]
+}
+
+// Ønsket-vs-tildelt sanity check: catches the case where two equally flexible
+// people (same number of wanted types) end up with very different outcomes —
+// e.g. one gets all 3 wanted leagues while another only gets 1. Computed
+// entirely from the preview result already in memory, so it updates with
+// every "Træk ny fordeling" for free.
+function FordelingsTjek({ resultat }: { resultat: FordelingsResultat }) {
+  const [visFuldt, setVisFuldt] = useState(false)
+
+  const rows = useMemo<TjekRow[]>(() => {
+    const map = new Map<string, TjekRow>()
+
+    for (const liga of resultat.ligaer) {
+      for (const d of liga.deltagere) {
+        if (d.preferredTypes.length === 0) continue
+        let row = map.get(d.profileId)
+        if (!row) {
+          row = {
+            profileId: d.profileId,
+            displayName: d.displayName,
+            sleeperUsername: d.sleeperUsername,
+            wanted: d.preferredTypes,
+            got: [],
+          }
+          map.set(d.profileId, row)
+        }
+        if (!row.got.includes(liga.type)) row.got.push(liga.type)
+      }
+    }
+
+    for (const d of resultat.ikkeFordelbare) {
+      if (d.preferredTypes.length === 0) continue
+      if (!map.has(d.profileId)) {
+        map.set(d.profileId, {
+          profileId: d.profileId,
+          displayName: d.displayName,
+          sleeperUsername: d.sleeperUsername,
+          wanted: d.preferredTypes,
+          got: [],
+        })
+      }
+    }
+
+    return [...map.values()]
+  }, [resultat])
+
+  if (rows.length === 0) return null
+
+  const fuldt = rows.filter(r => r.got.length === r.wanted.length).length
+  const delvist = rows.filter(r => r.got.length > 0 && r.got.length < r.wanted.length).length
+  const ingen = rows.filter(r => r.got.length === 0).length
+
+  const tiers = [...new Set(rows.map(r => r.wanted.length))].sort((a, b) => b - a)
+
+  return (
+    <div className={`lb-col${visFuldt ? ' show-satisfied' : ''}`}>
+      <div className="tjek-head">
+        <span className="lb-col-name" style={{ fontSize: 18 }}>Fordelingstjek</span>
+      </div>
+      <p className="tjek-sub">
+        Ønsket vs. tildelt pr. deltager, grupperet efter hvor mange typer de ønskede — så et
+        &quot;ønskede 3, fik 1&quot; springer i øjnene, hvis andre i samme gruppe fik 3 ud af 3.
+      </p>
+
+      <div className="tjek-stats">
+        <div className="tjek-stat ok"><div className="n">{fuldt}</div><div className="l">fik alt de ønskede</div></div>
+        <div className="tjek-stat warn"><div className="n">{delvist}</div><div className="l">fik nogle, ikke alle</div></div>
+        <div className="tjek-stat bad"><div className="n">{ingen}</div><div className="l">fik ingen liga</div></div>
+      </div>
+
+      <div className="tjek-toolbar">
+        <label className="tjek-toggle">
+          <input type="checkbox" checked={visFuldt} onChange={e => setVisFuldt(e.target.checked)} />
+          Vis også fuldt tilfredsstillede ({fuldt})
+        </label>
+        <span className="eyebrow">Sorteret: værst placeret først i hver gruppe</span>
+      </div>
+
+      {tiers.map(n => {
+        const tierRows = [...rows]
+          .filter(r => r.wanted.length === n)
+          .sort((a, b) => a.got.length - b.got.length || a.displayName.localeCompare(b.displayName))
+        const gotCounts = tierRows.map(r => r.got.length)
+        const snit = gotCounts.reduce((s, x) => s + x, 0) / tierRows.length
+        const min = Math.min(...gotCounts)
+        const max = Math.max(...gotCounts)
+        const stortSpring = max - min >= 2
+
+        return (
+          <div className="tjek-tier" key={n}>
+            <div className="tjek-tier-head">
+              <span className="tjek-tier-name">Ønskede {n} {n === 1 ? 'type' : 'typer'}</span>
+              <span className="tjek-tier-meta">
+                {tierRows.length} deltagere · snit tildelt <b>{snit.toFixed(1).replace('.', ',')}</b>/{n} · spredning {min}–{max}
+                {stortSpring && <span className="spread-flag"> ⚠ stor spredning</span>}
+              </span>
+            </div>
+            <table className="tjek-table">
+              <thead>
+                <tr>
+                  <th>Deltager</th><th>Ønsket</th><th>Tildelt</th>
+                  <th className="num">Score</th><th>Status</th><th>Mangler</th>
+                </tr>
+              </thead>
+              <tbody>
+                {tierRows.map(r => {
+                  const fuldtTilfreds = r.got.length === r.wanted.length
+                  const status = fuldtTilfreds ? 'ok' : r.got.length === 0 ? 'bad' : 'warn'
+                  const statusLabel = fuldtTilfreds ? 'Fuldt' : r.got.length === 0 ? 'Ingen liga' : 'Delvist'
+                  const missing = r.wanted.filter(t => !r.got.includes(t))
+                  return (
+                    <tr key={r.profileId} className={fuldtTilfreds ? 'tjek-satisfied' : undefined}>
+                      <td>
+                        <span className="tjek-name">{r.displayName}</span>
+                        <span className="tjek-uname">@{r.sleeperUsername}</span>
+                      </td>
+                      <td>
+                        <span className="tjek-dots">
+                          {r.wanted.map(t => <span key={t} className={`tjek-dot ${t}`} />)}
+                        </span>
+                      </td>
+                      <td>
+                        <span className="tjek-dots">
+                          {r.wanted.map(t => (
+                            <span key={t} className={`tjek-dot ${t} ${r.got.includes(t) ? 'filled' : 'hollow'}`} />
+                          ))}
+                        </span>
+                      </td>
+                      <td className="num">
+                        <span className={`tjek-frac ${status}`}>{r.got.length}/{r.wanted.length}</span>
+                      </td>
+                      <td><span className={`tjek-pill ${status}`}>{statusLabel}</span></td>
+                      <td className="tjek-miss">
+                        {missing.length > 0 ? (
+                          <>
+                            Mangler{' '}
+                            {missing.map((t, i) => (
+                              <span key={t}>{i > 0 && ', '}<b>{TJEK_TYPE_LABELS[t]}</b></span>
+                            ))}
+                          </>
+                        ) : '—'}
+                      </td>
+                    </tr>
+                  )
+                })}
+              </tbody>
+            </table>
+          </div>
+        )
+      })}
+
+      <div className="tjek-legend">
+        <span className="swatch"><span className="tjek-dot filled bestball" style={{ width: 9, height: 9 }} /> Fyldt = tildelt</span>
+        <span className="swatch"><span className="tjek-dot hollow bestball" style={{ width: 9, height: 9 }} /> Tom = ønsket, ikke fået</span>
+        {TJEK_TYPES.map(t => (
+          <span className="swatch" key={t}>
+            <span className={`tjek-dot filled ${t}`} style={{ width: 9, height: 9 }} /> {TJEK_TYPE_LABELS[t]}
+          </span>
+        ))}
+      </div>
+    </div>
+  )
 }
 
 function KopierKnap({ tekst }: { tekst: string }) {
@@ -253,6 +431,8 @@ export default function FordelPage() {
             </div>
           ) : (
             <>
+              <FordelingsTjek resultat={resultat} />
+
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 12, marginBottom: 16 }}>
                 {resultat.ligaer.map((liga: LigaForslag) => (
                   <div key={liga.ligaNavn} className="lb-col">
