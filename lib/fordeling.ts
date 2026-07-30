@@ -76,11 +76,17 @@ function isCompatible(ligaNavn: string, d: Deltager): boolean {
 
 // Fills `people` into leagues of `type`. Uses existing VIP-seeded leagues first
 // (least-full first for even distribution), then creates new leagues as needed.
+// `maxLigaer` is the total number of leagues of this type that will exist once
+// fordeling finishes (VIP-pinned leagues included) — a compatible new league is
+// preferred over an incompatible existing one as long as we haven't hit that cap
+// yet, otherwise an early-shuffled VIP-avoider could get force-placed into a
+// VIP-pinned league simply because the "safe" leagues hadn't been created yet.
 function distributeIntoLeagues(
   people: Deltager[],
   type: LeagueType,
   ligaMap: Map<string, LigaForslag>,
-  ligaStørrelse: number
+  ligaStørrelse: number,
+  maxLigaer: number
 ): void {
   if (people.length === 0) return
 
@@ -89,18 +95,22 @@ function distributeIntoLeagues(
   for (const d of shuffle(people)) {
     const withRoom = existing().filter(l => l.deltagere.length < ligaStørrelse)
 
-    // Prefer compatible leagues; fall back to any league with room rather than
-    // creating a new under-filled one (soft constraint — avoids blocking others).
+    const compatibleTarget =
+      withRoom.filter(l => isCompatible(l.ligaNavn, d)).sort((a, b) => a.deltagere.length - b.deltagere.length)[0]
+
+    // No compatible league has room: create a fresh (inherently compatible) one
+    // if the cap allows it. Only fall back to an incompatible league once every
+    // league of this type has already been created.
     const target =
-      withRoom.filter(l => isCompatible(l.ligaNavn, d)).sort((a, b) => a.deltagere.length - b.deltagere.length)[0] ??
-      withRoom.sort((a, b) => a.deltagere.length - b.deltagere.length)[0]
+      compatibleTarget ??
+      (existing().length >= maxLigaer ? withRoom.sort((a, b) => a.deltagere.length - b.deltagere.length)[0] : undefined)
 
     if (target) {
       target.deltagere.push(d)
       if (d.erAmerikanskVip) ligaHarAmerikanskVip.set(target.ligaNavn, true)
       if (d.undgaaAmerikanskVip) ligaHarUndgaaAmerikanskVip.set(target.ligaNavn, true)
     } else {
-      // All existing leagues are full — create a new one
+      // All existing leagues are full, or none are compatible yet — create a new one
       const navn = næsteNavn(type, new Set(ligaMap.keys()))
       const ny: LigaForslag = { ligaNavn: navn, type, deltagere: [d] }
       ligaMap.set(navn, ny)
@@ -178,7 +188,7 @@ export function beregnFordeling(
     const toAssign = tiered.slice(0, regularCapacity)
     // tiered[regularCapacity..] are bumped from this type — they may still play other types.
 
-    distributeIntoLeagues(toAssign, type, ligaMap, størrelse)
+    distributeIntoLeagues(toAssign, type, ligaMap, størrelse, totalLeagues)
     for (const d of toAssign) inType.get(type)!.add(d.profileId)
   }
 
