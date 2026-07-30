@@ -338,11 +338,15 @@ export default function FordelPage() {
   const setVisning = setVisningValg
 
   async function hentHistorik(season: string) {
-    const res = await fetch(`/api/admin/fordel/historik?season=${encodeURIComponent(season)}`)
-    const data: HistorikData = await res.json()
-    setHistorik(data)
-    setHistorikLoading(false)
-    return data
+    try {
+      const res = await fetch(`/api/admin/fordel/historik?season=${encodeURIComponent(season)}`)
+      if (!res.ok) return
+      const data: HistorikData = await res.json()
+      setHistorik(data)
+      return data
+    } finally {
+      setHistorikLoading(false)
+    }
   }
 
   useEffect(() => {
@@ -394,19 +398,28 @@ export default function FordelPage() {
     if (!resultat) return
     setLoading(true)
     setStatus('')
-    const res = await fetch('/api/admin/fordel/bekræft', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ ligaer: resultat.ligaer, sæson: CURRENT_SEASON }),
-    })
-    const data = await res.json()
-    setLoading(false)
-    if (data.ok) {
-      setGemtBesked(`${data.tildelt} deltagere tildelt ligaer.${data.fejl?.length ? ` ${data.fejl.length} fejl.` : ''}`)
-      await hentHistorik(CURRENT_SEASON)
-      setVisning('aktuel')
-    } else {
-      setStatus('Noget gik galt. Prøv igen.')
+    try {
+      const res = await fetch('/api/admin/fordel/bekraeft', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ligaer: resultat.ligaer, sæson: CURRENT_SEASON }),
+      })
+      if (!res.ok) {
+        setStatus(`Noget gik galt (${res.status}). Prøv igen.`)
+        return
+      }
+      const data = await res.json()
+      if (data.ok) {
+        setGemtBesked(`${data.tildelt} deltagere tildelt ligaer.${data.fejl?.length ? ` ${data.fejl.length} fejl.` : ''}`)
+        await hentHistorik(CURRENT_SEASON)
+        setVisning('aktuel')
+      } else {
+        setStatus('Noget gik galt. Prøv igen.')
+      }
+    } catch {
+      setStatus('Kunne ikke kontakte serveren. Tjek din forbindelse og prøv igen.')
+    } finally {
+      setLoading(false)
     }
   }
 
