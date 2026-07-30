@@ -431,8 +431,6 @@ export default function FordelPage() {
             </div>
           ) : (
             <>
-              <FordelingsTjek resultat={resultat} />
-
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 12, marginBottom: 16 }}>
                 {resultat.ligaer.map((liga: LigaForslag) => (
                   <div key={liga.ligaNavn} className="lb-col">
@@ -494,6 +492,8 @@ export default function FordelPage() {
                   </ul>
                 </div>
               )}
+
+              <FordelingsTjek resultat={resultat} />
 
               <div className="lb-col" style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', gap: 16, marginBottom: 80 }}>
                 <div>
