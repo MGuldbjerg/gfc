@@ -1,7 +1,7 @@
 import { redirect } from 'next/navigation'
 import Link from 'next/link'
 import { auth, signOut } from '@/auth'
-import { queryOne, execute } from '@/lib/turso'
+import { query, queryOne, execute } from '@/lib/turso'
 import { CURRENT_SEASON } from '@/lib/leagues'
 
 export const dynamic = 'force-dynamic'
@@ -15,9 +15,14 @@ type ProfilRow = {
 }
 
 type RegistrationRow = {
+  id: string
   preferred_types: string | null
   status: string
-  assigned_league_name: string | null
+}
+
+type LeagueAssignmentRow = {
+  liga_navn: string
+  league_type: string
 }
 
 export default async function MinSide() {
@@ -32,11 +37,21 @@ export default async function MinSide() {
   if (!profil) redirect('/profil-setup')
 
   const reg = await queryOne<RegistrationRow>(
-    `SELECT preferred_types, status, assigned_league_name
+    `SELECT id, preferred_types, status
        FROM registrations
       WHERE profile_id = ? AND season = ?`,
     [session.user.id, CURRENT_SEASON]
   )
+
+  const tildelteLigaer = reg
+    ? await query<LeagueAssignmentRow>(
+        `SELECT liga_navn, league_type
+           FROM league_assignments
+          WHERE registration_id = ?
+          ORDER BY liga_navn`,
+        [reg.id]
+      )
+    : []
 
   const tidligereReg = !reg
     ? await queryOne<{ season: string }>(
@@ -94,7 +109,7 @@ export default async function MinSide() {
           ? tidligereReg
             ? <BannerVelkommenTilbage navn={profil.display_name} sidsteSæson={tidligereReg.season} />
             : <BannerTilmeldSaeson />
-          : <StatusKort reg={reg} rækker={rækker} frameld={frameld} />
+          : <StatusKort rækker={rækker} tildelteLigaer={tildelteLigaer} frameld={frameld} />
         }
 
         <div style={{ marginTop: 32, display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 12 }}>
@@ -197,7 +212,13 @@ function BannerTilmeldSaeson() {
   )
 }
 
-function StatusKort({ reg, rækker, frameld }: { reg: RegistrationRow; rækker: string[]; frameld: () => Promise<void> }) {
+function StatusKort({
+  rækker, tildelteLigaer, frameld,
+}: {
+  rækker: string[]
+  tildelteLigaer: LeagueAssignmentRow[]
+  frameld: () => Promise<void>
+}) {
   return (
     <div style={{
       padding: '28px',
@@ -210,8 +231,8 @@ function StatusKort({ reg, rækker, frameld }: { reg: RegistrationRow; rækker: 
         Tilmeldt GFC {CURRENT_SEASON}
       </p>
       <p style={{ fontFamily: 'var(--font-display)', fontSize: 22, fontWeight: 600, letterSpacing: '-0.02em', color: 'var(--ink)' }}>
-        {reg.assigned_league_name
-          ? `Du er tildelt ${reg.assigned_league_name}`
+        {tildelteLigaer.length > 0
+          ? `Du er tildelt ${tildelteLigaer.map(l => l.liga_navn).join(', ')}`
           : 'Afventer ligafordeling'}
       </p>
       <p style={{ color: 'var(--muted)', fontSize: 14, marginTop: 10 }}>

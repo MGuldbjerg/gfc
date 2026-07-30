@@ -190,6 +190,107 @@ function FordelingsTjek({ resultat }: { resultat: FordelingsResultat }) {
   )
 }
 
+type HistorikData = { season: string; seasons: string[]; ligaer: LigaForslag[] }
+
+function LigaGrid({ ligaer }: { ligaer: LigaForslag[] }) {
+  return (
+    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 12, marginBottom: 16 }}>
+      {ligaer.map((liga: LigaForslag) => (
+        <div key={liga.ligaNavn} className="lb-col">
+          <div className="lb-col-head">
+            <span className="lb-col-name" style={{ fontSize: 18 }}>{liga.ligaNavn}</span>
+            <span className={`type-badge ${liga.type}`}>{liga.type}</span>
+            <KopierKnap tekst={liga.deltagere.map(d => d.sleeperUsername).join('\n')} />
+          </div>
+          <p className="eyebrow" style={{ marginBottom: 12 }}>{liga.deltagere.length} hold</p>
+          <ol>
+            {liga.deltagere.map((d, i) => (
+              <li key={d.profileId} style={{
+                display: 'flex', alignItems: 'center', gap: 8,
+                fontSize: 13.5, padding: '5px 0',
+                borderBottom: '1px solid var(--line-2)',
+              }}>
+                <span className="eyebrow" style={{ width: 20 }}>{i + 1}.</span>
+                <span style={{ flex: 1, fontWeight: 500, color: 'var(--ink)' }}>{d.displayName}</span>
+                {d.erAmerikanskVip && (
+                  <span title="Amerikansk VIP" style={{ fontSize: 13 }}>🇺🇸</span>
+                )}
+                {d.erDanskVip && (
+                  <span title="Dansk VIP" style={{ fontSize: 13 }}>🇩🇰</span>
+                )}
+                {d.pinned && (
+                  <span title="VIP-pin" style={{ color: 'var(--accent)', fontSize: 11 }}>★</span>
+                )}
+                <span className="mono" style={{ fontSize: 11, color: 'var(--muted)' }}>{d.sleeperUsername}</span>
+              </li>
+            ))}
+          </ol>
+        </div>
+      ))}
+    </div>
+  )
+}
+
+// Read-only view of whatever is currently confirmed in the DB for a season —
+// revisitable any time, independent of the draft/preview tool below, and
+// still available after CURRENT_SEASON moves on (via the season picker).
+function AktuelFordeling({
+  historik, loading, onSkiftSæson, gemtBesked,
+}: {
+  historik: HistorikData | null
+  loading: boolean
+  onSkiftSæson: (season: string) => void
+  gemtBesked: string
+}) {
+  const season = historik?.season ?? CURRENT_SEASON
+  const seasons = historik?.seasons.length ? historik.seasons : [CURRENT_SEASON]
+
+  return (
+    <>
+      {gemtBesked && (
+        <div style={{
+          background: 'color-mix(in oklch, var(--pos) 10%, var(--bg))',
+          border: '1px solid color-mix(in oklch, var(--pos) 30%, transparent)',
+          borderRadius: 'var(--r)',
+          padding: '14px 20px',
+          marginBottom: 16,
+          display: 'flex', alignItems: 'center', gap: 10,
+        }}>
+          <span style={{ color: 'var(--pos)', fontWeight: 700 }}>✓</span>
+          <span style={{ color: 'var(--ink-2)', fontSize: 14 }}>{gemtBesked}</span>
+        </div>
+      )}
+
+      <div className="lb-col" style={{ marginBottom: 16, display: 'flex', alignItems: 'center', gap: 12 }}>
+        <label className="gfc-label">Sæson</label>
+        <select
+          value={season}
+          onChange={e => onSkiftSæson(e.target.value)}
+          className="gfc-input"
+          style={{ width: 120 }}
+        >
+          {seasons.map(s => <option key={s} value={s}>{s}</option>)}
+        </select>
+      </div>
+
+      {loading ? (
+        <div className="lb-col" style={{ textAlign: 'center', padding: 48 }}>
+          <p className="eyebrow">Indlæser…</p>
+        </div>
+      ) : !historik || historik.ligaer.length === 0 ? (
+        <div className="lb-col" style={{ textAlign: 'center', padding: 48 }}>
+          <p className="eyebrow">Ingen bekræftet fordeling endnu for {season}.</p>
+        </div>
+      ) : (
+        <>
+          <LigaGrid ligaer={historik.ligaer} />
+          <FordelingsTjek resultat={{ ligaer: historik.ligaer, ikkeFordelbare: [] }} />
+        </>
+      )}
+    </>
+  )
+}
+
 function KopierKnap({ tekst }: { tekst: string }) {
   const [kopieret, setKopieret] = useState(false)
   function kopier() {
@@ -215,7 +316,6 @@ export default function FordelPage() {
   const [choppedStørrelse, setChoppedStørrelse] = useState(18)
   const [resultat, setResultat] = useState<FordelingsResultat | null>(null)
   const [loading, setLoading] = useState(false)
-  const [bekræftet, setBekræftet] = useState(false)
   const [status, setStatus] = useState('')
 
   const [deltagere, setDeltagere] = useState<DeltagerOption[]>([])
@@ -225,11 +325,39 @@ export default function FordelPage() {
     ligaNavn: '',
   })
 
+  // null = admin hasn't picked a tab yet — default it once the historik fetch
+  // resolves (confirmed leagues exist → "Aktuel fordeling", otherwise → "Ny
+  // fordeling"), without setting state as a side effect of the fetch itself.
+  const [visningValg, setVisningValg] = useState<'aktuel' | 'ny' | null>(null)
+  const [historik, setHistorik] = useState<HistorikData | null>(null)
+  const [historikLoading, setHistorikLoading] = useState(true)
+  const [gemtBesked, setGemtBesked] = useState('')
+
+  const visning: 'aktuel' | 'ny' =
+    visningValg ?? (!historikLoading && historik && historik.ligaer.length > 0 ? 'aktuel' : 'ny')
+  const setVisning = setVisningValg
+
+  async function hentHistorik(season: string) {
+    const res = await fetch(`/api/admin/fordel/historik?season=${encodeURIComponent(season)}`)
+    const data: HistorikData = await res.json()
+    setHistorik(data)
+    setHistorikLoading(false)
+    return data
+  }
+
   useEffect(() => {
     fetch('/api/admin/fordel/deltagere')
       .then(r => r.json())
       .then(data => setDeltagere(data.deltagere ?? []))
       .catch(() => {})
+
+    fetch(`/api/admin/fordel/historik?season=${encodeURIComponent(CURRENT_SEASON)}`)
+      .then(r => r.json())
+      .then((data: HistorikData) => {
+        setHistorik(data)
+        setHistorikLoading(false)
+      })
+      .catch(() => setHistorikLoading(false))
   }, [])
 
   function tilføjPin() {
@@ -265,6 +393,7 @@ export default function FordelPage() {
   async function bekræftFordeling() {
     if (!resultat) return
     setLoading(true)
+    setStatus('')
     const res = await fetch('/api/admin/fordel/bekræft', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -273,29 +402,12 @@ export default function FordelPage() {
     const data = await res.json()
     setLoading(false)
     if (data.ok) {
-      setBekræftet(true)
-      setStatus(`${data.tildelt} deltagere tildelt ligaer.${data.fejl?.length ? ` ${data.fejl.length} fejl.` : ''}`)
+      setGemtBesked(`${data.tildelt} deltagere tildelt ligaer.${data.fejl?.length ? ` ${data.fejl.length} fejl.` : ''}`)
+      await hentHistorik(CURRENT_SEASON)
+      setVisning('aktuel')
     } else {
       setStatus('Noget gik galt. Prøv igen.')
     }
-  }
-
-  if (bekræftet) {
-    return (
-      <div className="form-page">
-        <div className="form-card" style={{ textAlign: 'center' }}>
-          <div className="kicker-strip" style={{ justifyContent: 'center', marginBottom: 20 }}>
-            <span className="dash" />
-            <span className="eyebrow">Fordeling gennemført</span>
-          </div>
-          <h2 className="form-card-title">Ligaer oprettet</h2>
-          <p className="form-card-sub">{status}</p>
-          <Link href="/admin" className="btn" style={{ marginTop: 8 }}>
-            Tilbage til admin
-          </Link>
-        </div>
-      </div>
-    )
   }
 
   return (
@@ -311,6 +423,33 @@ export default function FordelPage() {
         </div>
       </div>
 
+      {/* Tabs */}
+      <div style={{ display: 'flex', gap: 8, marginBottom: 16 }}>
+        <button
+          onClick={() => setVisning('aktuel')}
+          className={visning === 'aktuel' ? 'btn' : 'btn ghost'}
+        >
+          Aktuel fordeling
+        </button>
+        <button
+          onClick={() => setVisning('ny')}
+          className={visning === 'ny' ? 'btn' : 'btn ghost'}
+        >
+          Ny fordeling
+        </button>
+      </div>
+
+      {visning === 'aktuel' && (
+        <AktuelFordeling
+          historik={historik}
+          loading={historikLoading}
+          onSkiftSæson={hentHistorik}
+          gemtBesked={gemtBesked}
+        />
+      )}
+
+      {visning === 'ny' && (
+        <>
       {/* Settings */}
       <div className="lb-col" style={{ marginBottom: 16, display: 'flex', flexWrap: 'wrap', alignItems: 'flex-end', gap: 24 }}>
         <div>
@@ -431,40 +570,7 @@ export default function FordelPage() {
             </div>
           ) : (
             <>
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 12, marginBottom: 16 }}>
-                {resultat.ligaer.map((liga: LigaForslag) => (
-                  <div key={liga.ligaNavn} className="lb-col">
-                    <div className="lb-col-head">
-                      <span className="lb-col-name" style={{ fontSize: 18 }}>{liga.ligaNavn}</span>
-                      <span className={`type-badge ${liga.type}`}>{liga.type}</span>
-                      <KopierKnap tekst={liga.deltagere.map(d => d.sleeperUsername).join('\n')} />
-                    </div>
-                    <p className="eyebrow" style={{ marginBottom: 12 }}>{liga.deltagere.length} hold</p>
-                    <ol>
-                      {liga.deltagere.map((d, i) => (
-                        <li key={d.profileId} style={{
-                          display: 'flex', alignItems: 'center', gap: 8,
-                          fontSize: 13.5, padding: '5px 0',
-                          borderBottom: '1px solid var(--line-2)',
-                        }}>
-                          <span className="eyebrow" style={{ width: 20 }}>{i + 1}.</span>
-                          <span style={{ flex: 1, fontWeight: 500, color: 'var(--ink)' }}>{d.displayName}</span>
-                          {d.erAmerikanskVip && (
-                            <span title="Amerikansk VIP" style={{ fontSize: 13 }}>🇺🇸</span>
-                          )}
-                          {d.erDanskVip && (
-                            <span title="Dansk VIP" style={{ fontSize: 13 }}>🇩🇰</span>
-                          )}
-                          {d.pinned && (
-                            <span title="VIP-pin" style={{ color: 'var(--accent)', fontSize: 11 }}>★</span>
-                          )}
-                          <span className="mono" style={{ fontSize: 11, color: 'var(--muted)' }}>{d.sleeperUsername}</span>
-                        </li>
-                      ))}
-                    </ol>
-                  </div>
-                ))}
-              </div>
+              <LigaGrid ligaer={resultat.ligaer} />
 
               {resultat.ikkeFordelbare.length > 0 && (
                 <div style={{
@@ -510,6 +616,9 @@ export default function FordelPage() {
                   <p className="eyebrow" style={{ marginTop: 6 }}>
                     Ikke tilfreds? Klik &quot;Træk ny fordeling&quot; for en ny tilfældig fordeling.
                   </p>
+                  {status && (
+                    <p style={{ color: 'var(--accent)', fontSize: 13, marginTop: 8 }}>{status}</p>
+                  )}
                 </div>
                 <button
                   onClick={bekræftFordeling}
@@ -523,6 +632,8 @@ export default function FordelPage() {
               </div>
             </>
           )}
+        </>
+      )}
         </>
       )}
     </>

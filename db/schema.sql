@@ -62,9 +62,28 @@ CREATE TABLE IF NOT EXISTS season_settings (
   updated_at      TEXT NOT NULL DEFAULT (datetime('now'))
 );
 
+-- One row per person per confirmed league. registrations.assigned_league_name/
+-- assigned_league_id only hold a single value, but a person can be confirmed
+-- into up to 3 leagues (bestball + managed + chopped) — this table is the
+-- actual one-to-many record. Written by /api/admin/fordel/bekræft; read by
+-- /min-side and the "Aktuel fordeling" view on /admin/fordel.
+CREATE TABLE IF NOT EXISTS league_assignments (
+  id                TEXT PRIMARY KEY,
+  registration_id   TEXT NOT NULL REFERENCES registrations(id) ON DELETE CASCADE,
+  profile_id        TEXT NOT NULL REFERENCES profiles(id) ON DELETE CASCADE,
+  season            TEXT NOT NULL,
+  liga_navn         TEXT NOT NULL,                          -- 'BB1', 'M3', ...
+  league_type       TEXT NOT NULL,                          -- 'bestball' | 'managed' | 'chopped'
+  sleeper_league_id TEXT,
+  created_at        TEXT NOT NULL DEFAULT (datetime('now')),
+  UNIQUE(registration_id, liga_navn)
+);
+
 CREATE INDEX IF NOT EXISTS idx_registrations_season ON registrations(season);
 CREATE INDEX IF NOT EXISTS idx_registrations_profile ON registrations(profile_id);
 CREATE INDEX IF NOT EXISTS idx_badges_profile ON badges(profile_id);
+CREATE INDEX IF NOT EXISTS idx_league_assignments_season ON league_assignments(season);
+CREATE INDEX IF NOT EXISTS idx_league_assignments_profile ON league_assignments(profile_id);
 
 -- Auth.js (NextAuth v5) — JWT sessions + email magic-link provider.
 -- Only the tables required by the email provider are created here; no `session`
