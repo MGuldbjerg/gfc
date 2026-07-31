@@ -14,6 +14,7 @@ type Row = {
   profile_id: string
   display_name: string
   username: string
+  email: string | null
   nyhedsbrev: number
   er_amerikansk_vip: number
   er_dansk_vip: number
@@ -34,9 +35,11 @@ export default async function AdminPage() {
   const rows = await query<Row>(
     `SELECT r.id, r.season, r.preferred_types, r.assigned_league_name, r.status, r.created_at,
             r.undgaa_amerikansk_vip,
-            p.id AS profile_id, p.display_name, p.username, p.nyhedsbrev, p.er_amerikansk_vip, p.er_dansk_vip
+            p.id AS profile_id, p.display_name, p.username, p.nyhedsbrev, p.er_amerikansk_vip, p.er_dansk_vip,
+            u.email
        FROM registrations r
        JOIN profiles p ON p.id = r.profile_id
+       LEFT JOIN authjs_user u ON u.id = p.id
       WHERE r.season = ?
       ORDER BY r.created_at DESC`,
     [CURRENT_SEASON]
@@ -53,7 +56,7 @@ export default async function AdminPage() {
     erAmerikanskVip: Boolean(r.er_amerikansk_vip),
     erDanskVip: Boolean(r.er_dansk_vip),
     undgaaAmerikanskVip: Boolean(r.undgaa_amerikansk_vip),
-    profiles: { id: r.profile_id, display_name: r.display_name, username: r.username },
+    profiles: { id: r.profile_id, display_name: r.display_name, username: r.username, email: r.email },
   }))
 
   const stats = {

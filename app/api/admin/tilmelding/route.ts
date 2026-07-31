@@ -1,6 +1,11 @@
 // Manually adds a player for the current season (admin only).
-// Creates a freestanding profile (no login account) plus a season registration,
-// so admin-added VIPs/guests appear in the assignment flow like any signup.
+// Creates a profile plus a season registration, so admin-added VIPs/guests
+// appear in the assignment flow like any signup.
+//
+// If an email is supplied the profile is tied to an Auth.js user with the same
+// id (profiles.id === authjs_user.id), which is what makes magic-link login —
+// and the league-assignment mails — work for the player. Without an email the
+// profile stays freestanding and the player cannot log in.
 
 import { NextRequest, NextResponse } from 'next/server'
 import { randomUUID } from 'node:crypto'
@@ -12,6 +17,10 @@ import { CURRENT_SEASON } from '@/lib/leagues'
 const VALID_TYPES = ['bestball', 'managed', 'chopped'] as const
 const VIP_TYPER = ['amerikansk', 'dansk', 'none'] as const
 
+// Auth.js lowercases the identifier before looking up the user, so emails are
+// stored lowercase to keep the login lookup exact.
+const EMAIL_MØNSTER = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+
 export async function POST(req: NextRequest) {
   const session = await auth()
   if (!session?.user?.isAdmin) {
@@ -21,6 +30,7 @@ export async function POST(req: NextRequest) {
   const body = await req.json().catch(() => ({}))
   const displayName = typeof body.displayName === 'string' ? body.displayName.trim() : ''
   const sleeperUsername = typeof body.sleeperUsername === 'string' ? body.sleeperUsername.trim() : ''
+  const email = typeof body.email === 'string' ? body.email.trim().toLowerCase() : ''
   const vip = VIP_TYPER.includes(body.vip) ? body.vip : 'none'
   const undgaaAmerikanskVip = Boolean(body.undgaaAmerikanskVip)
   const preferredTypes = Array.isArray(body.preferredTypes)
@@ -32,6 +42,9 @@ export async function POST(req: NextRequest) {
   }
   if (!sleeperUsername) {
     return NextResponse.json({ error: 'Angiv et Sleeper-brugernavn' }, { status: 400 })
+  }
+  if (email && !EMAIL_MØNSTER.test(email)) {
+    return NextResponse.json({ error: 'E-mailadressen ser ikke gyldig ud.' }, { status: 400 })
   }
 
   // Sleeper username is required and must exist (same rule as the edit flow).
@@ -54,7 +67,34 @@ export async function POST(req: NextRequest) {
     )
   }
 
-  const profileId = randomUUID()
+  // Resolve the profile id: an existing Auth.js user keeps its id, a new email
+  // gets a fresh login account, and no email means a freestanding profile.
+  let profileId: string = randomUUID()
+  if (email) {
+    const authUser = await queryOne<{ id: string }>(
+      'SELECT id FROM authjs_user WHERE email = ?',
+      [email]
+    )
+    if (authUser) {
+      const harProfil = await queryOne<{ display_name: string }>(
+        'SELECT display_name FROM profiles WHERE id = ?',
+        [authUser.id]
+      )
+      if (harProfil) {
+        return NextResponse.json(
+          { error: `${email} har allerede en profil ("${harProfil.display_name}").` },
+          { status: 409 }
+        )
+      }
+      profileId = authUser.id
+    } else {
+      await execute(
+        'INSERT INTO authjs_user (id, email, name) VALUES (?, ?, ?)',
+        [profileId, email, displayName]
+      )
+    }
+  }
+
   const registrationId = randomUUID()
 
   await execute(

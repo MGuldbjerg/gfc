@@ -3,7 +3,9 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 
-type Profil = { display_name: string; username: string; id: string }
+// email comes from the Auth.js user sharing the profile id — null means the
+// player has no login account and can only be managed from here.
+type Profil = { display_name: string; username: string; id: string; email: string | null }
 
 // A profile carries at most one VIP tag; the two flags are mutually exclusive.
 type VipType = 'amerikansk' | 'dansk' | 'none'
@@ -45,21 +47,23 @@ export default function AdminTilmeldinger({ tilmeldinger }: { tilmeldinger: Tilm
   const [editData, setEditData] = useState<{
     displayName: string
     sleeperUsername: string
+    email: string
     preferredTypes: string[]
-  }>({ displayName: '', sleeperUsername: '', preferredTypes: [] })
+  }>({ displayName: '', sleeperUsername: '', email: '', preferredTypes: [] })
   const [editSaving, setEditSaving] = useState(false)
   const [editFejl, setEditFejl] = useState('')
-  const [localUpdates, setLocalUpdates] = useState<Record<string, Partial<Tilmelding & { display_name: string; username: string }>>>({})
+  const [localUpdates, setLocalUpdates] = useState<Record<string, Partial<Tilmelding & { display_name: string; username: string; email: string }>>>({})
 
   // Manual "add player" form
   const [tilføjÅben, setTilføjÅben] = useState(false)
   const [tilføjData, setTilføjData] = useState<{
     displayName: string
     sleeperUsername: string
+    email: string
     preferredTypes: string[]
     vip: VipType
     undgaaAmerikanskVip: boolean
-  }>({ displayName: '', sleeperUsername: '', preferredTypes: [], vip: 'none', undgaaAmerikanskVip: false })
+  }>({ displayName: '', sleeperUsername: '', email: '', preferredTypes: [], vip: 'none', undgaaAmerikanskVip: false })
   const [tilføjGemmer, setTilføjGemmer] = useState(false)
   const [tilføjFejl, setTilføjFejl] = useState('')
 
@@ -96,7 +100,7 @@ export default function AdminTilmeldinger({ tilmeldinger }: { tilmeldinger: Tilm
       })
       const data = await res.json()
       if (!res.ok) throw new Error(data.error ?? 'Ukendt fejl')
-      setTilføjData({ displayName: '', sleeperUsername: '', preferredTypes: [], vip: 'none', undgaaAmerikanskVip: false })
+      setTilføjData({ displayName: '', sleeperUsername: '', email: '', preferredTypes: [], vip: 'none', undgaaAmerikanskVip: false })
       setTilføjÅben(false)
       router.refresh()
     } catch (e) {
@@ -113,6 +117,7 @@ export default function AdminTilmeldinger({ tilmeldinger }: { tilmeldinger: Tilm
     setEditData({
       displayName: profil?.display_name ?? '',
       sleeperUsername: profil?.username ?? '',
+      email: (localUpdates[t.id]?.email as string | undefined) ?? profil?.email ?? '',
       preferredTypes: [...(t.preferred_types ?? [])],
     })
   }
@@ -137,6 +142,7 @@ export default function AdminTilmeldinger({ tilmeldinger }: { tilmeldinger: Tilm
           preferredTypes: editData.preferredTypes,
           displayName: editData.displayName,
           sleeperUsername: editData.sleeperUsername,
+          email: editData.email,
         }),
       })
       const data = await res.json()
@@ -147,6 +153,7 @@ export default function AdminTilmeldinger({ tilmeldinger }: { tilmeldinger: Tilm
           preferred_types: editData.preferredTypes,
           display_name: editData.displayName,
           username: editData.sleeperUsername,
+          email: editData.email.trim().toLowerCase(),
         },
       }))
       setEditId(null)
@@ -202,6 +209,16 @@ export default function AdminTilmeldinger({ tilmeldinger }: { tilmeldinger: Tilm
                   className="gfc-input mono"
                   value={tilføjData.sleeperUsername}
                   onChange={e => setTilføjData(p => ({ ...p, sleeperUsername: e.target.value }))}
+                />
+              </label>
+              <label style={{ display: 'flex', flexDirection: 'column', gap: 5, flex: 1, minWidth: 200 }}>
+                <span className="eyebrow">E-mail (login)</span>
+                <input
+                  className="gfc-input"
+                  type="email"
+                  placeholder="valgfri"
+                  value={tilføjData.email}
+                  onChange={e => setTilføjData(p => ({ ...p, email: e.target.value }))}
                 />
               </label>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
@@ -262,6 +279,11 @@ export default function AdminTilmeldinger({ tilmeldinger }: { tilmeldinger: Tilm
               </button>
               {tilføjFejl && <p style={{ color: 'var(--accent)', fontSize: 13, margin: 0 }}>{tilføjFejl}</p>}
             </div>
+
+            <p style={{ fontSize: 12, color: 'var(--muted)', margin: '10px 0 0' }}>
+              Med en e-mail kan deltageren selv logge ind på fantasychallenge.dk med et magisk link
+              og modtager ligabesked. Uden e-mail bliver profilen kun administreret herfra.
+            </p>
           </div>
         )}
       </div>
@@ -324,12 +346,18 @@ export default function AdminTilmeldinger({ tilmeldinger }: { tilmeldinger: Tilm
               const visNavn = (updates?.display_name as string | undefined) ?? profil?.display_name ?? '—'
               const visBrugernavn = (updates?.username as string | undefined) ?? profil?.username ?? '—'
               const visTypes = (updates?.preferred_types as string[] | undefined) ?? t.preferred_types
+              const visEmail = (updates?.email as string | undefined) ?? profil?.email ?? null
               const isEditing = editId === t.id
 
               return (
                 <>
                   <tr key={t.id} style={isEditing ? { background: 'var(--bg-2)' } : undefined}>
-                    <td className="name">{visNavn}</td>
+                    <td className="name">
+                      {visNavn}
+                      <div style={{ fontSize: 11, color: visEmail ? 'var(--muted)' : 'var(--accent)', fontWeight: 400 }}>
+                        {visEmail ?? 'ingen login-mail'}
+                      </div>
+                    </td>
                     <td className="mono" style={{ fontSize: 12 }}>{visBrugernavn}</td>
                     <td>
                       <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap' }}>
@@ -409,6 +437,16 @@ export default function AdminTilmeldinger({ tilmeldinger }: { tilmeldinger: Tilm
                               className="gfc-input mono"
                               value={editData.sleeperUsername}
                               onChange={e => setEditData(p => ({ ...p, sleeperUsername: e.target.value }))}
+                            />
+                          </label>
+                          <label style={{ display: 'flex', flexDirection: 'column', gap: 5, flex: 1, minWidth: 200 }}>
+                            <span className="eyebrow">E-mail (login)</span>
+                            <input
+                              className="gfc-input"
+                              type="email"
+                              placeholder="ingen — kan ikke logge ind"
+                              value={editData.email}
+                              onChange={e => setEditData(p => ({ ...p, email: e.target.value }))}
                             />
                           </label>
                           <div style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>

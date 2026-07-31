@@ -1,8 +1,9 @@
 -- GFC Platform — Turso (libSQL/SQLite) schema
 -- Apply with: node scripts/apply-schema.mjs
 
--- Participant profiles. id matches the Auth.js user id for self-signups; for
--- admin-added players (no login) it is a freestanding uuid.
+-- Participant profiles. id matches the Auth.js user id for self-signups and for
+-- admin-added players given an email; for admin-added players without an email
+-- (no login) it is a freestanding uuid.
 CREATE TABLE IF NOT EXISTS profiles (
   id TEXT PRIMARY KEY,
   username TEXT UNIQUE NOT NULL,                          -- Sleeper username
