@@ -18,6 +18,19 @@ export interface ADPStats {
   picks: number        // How many leagues drafted this player
 }
 
+// Live status per Sleeper draft. Slow drafts run for weeks, so a season can be
+// half-drafted for a long stretch — the page shows this next to the ADP tables
+// so thin numbers are read in context.
+export interface DraftProgress {
+  name: string
+  leagueType: LeagueType
+  status: DraftStatus
+  picksMade: number
+  totalPicks: number
+}
+
+export type DraftStatus = 'ikke-startet' | 'i-gang' | 'pause' | 'afsluttet'
+
 export interface DraftStatistics {
   topADP: ADPStats[]
   adpSwings: ADPStats[]
@@ -25,7 +38,11 @@ export interface DraftStatistics {
   perFormat: {
     managed: ADPStats[]
     bestball: ADPStats[]
+    chopped: ADPStats[]
   }
+  progress: DraftProgress[]
+  /** True while at least one draft in the season is unfinished. */
+  igangværende: boolean
 }
 
 export async function calculateDraftStatistics(season: string): Promise<DraftStatistics> {
@@ -41,11 +58,11 @@ export async function calculateDraftStatistics(season: string): Promise<DraftSta
       leagues.map(async league => {
         try {
           const draft = await fetchDraft(league.sleeperId)
-          if (!draft?.draft_id) return { league, picks: [] as Pick[] }
+          if (!draft?.draft_id) return { league, picks: [] as Pick[], draft: null }
           const picks = (await fetchDraftPicks(draft.draft_id)) as Pick[]
-          return { league, picks }
+          return { league, picks, draft }
         } catch {
-          return { league, picks: [] as Pick[] }
+          return { league, picks: [] as Pick[], draft: null }
         }
       })
     ),
@@ -60,6 +77,23 @@ export async function calculateDraftStatistics(season: string): Promise<DraftSta
     draftsPerLeague.filter(d => d.league.leagueType === 'bestball'),
     players,
   )
+  const choppedOnly = collectPicks(
+    draftsPerLeague.filter(d => d.league.leagueType === 'chopped'),
+    players,
+  )
+
+  const progress: DraftProgress[] = draftsPerLeague.map(({ league, picks, draft }) => {
+    const picksMade = picks.filter(p => p.player_id).length
+    const rounds = draft?.settings?.rounds ?? 0
+    const teams = draft?.settings?.teams ?? 0
+    return {
+      name: league.name,
+      leagueType: league.leagueType,
+      status: draftStatus(draft?.status, picksMade),
+      picksMade,
+      totalPicks: rounds * teams,
+    }
+  })
 
   return {
     topADP: [...overall].sort((a, b) => a.adp - b.adp).slice(0, 25),
@@ -74,8 +108,21 @@ export async function calculateDraftStatistics(season: string): Promise<DraftSta
     perFormat: {
       managed: managedOnly.sort((a, b) => a.adp - b.adp).slice(0, 25),
       bestball: bestballOnly.sort((a, b) => a.adp - b.adp).slice(0, 25),
+      chopped: choppedOnly.sort((a, b) => a.adp - b.adp).slice(0, 25),
     },
+    progress,
+    igangværende: progress.some(p => p.status !== 'afsluttet'),
   }
+}
+
+// Sleeper reports 'paused' both for a commissioner pause and for the nightly
+// pause window of a slow draft, so a paused draft with picks on the board is
+// still under way — only 'complete' ends it.
+function draftStatus(raw: string | null | undefined, picksMade: number): DraftStatus {
+  if (raw === 'complete') return 'afsluttet'
+  if (raw === 'paused') return picksMade > 0 ? 'pause' : 'ikke-startet'
+  if (raw === 'drafting') return 'i-gang'
+  return picksMade > 0 ? 'i-gang' : 'ikke-startet'
 }
 
 interface Pick {
@@ -123,6 +170,8 @@ function emptyStats(): DraftStatistics {
     topADP: [],
     adpSwings: [],
     mostConsistent: [],
-    perFormat: { managed: [], bestball: [] },
+    perFormat: { managed: [], bestball: [], chopped: [] },
+    progress: [],
+    igangværende: false,
   }
 }

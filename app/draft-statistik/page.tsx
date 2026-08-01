@@ -1,5 +1,10 @@
 import Link from 'next/link'
-import { calculateDraftStatistics, type ADPStats } from '@/lib/draft-stats'
+import {
+  calculateDraftStatistics,
+  type ADPStats,
+  type DraftProgress,
+  type DraftStatus,
+} from '@/lib/draft-stats'
 import { listSæsoner } from '@/lib/historie'
 import { DraftRefreshButton } from '@/components/DraftRefreshButton'
 
@@ -52,12 +57,17 @@ export default async function DraftStatistikPage({
               ))}
             </div>
 
-            {!stats || stats.topADP.length === 0 ? (
-              <p className="eyebrow" style={{ padding: '32px 0' }}>
-                Ingen draftdata for {valgtSæson}. Drafts er muligvis ikke afsluttet endnu.
-              </p>
-            ) : (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 48, paddingBottom: 80 }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 48, paddingBottom: 80 }}>
+              {stats && stats.progress.length > 0 && stats.igangværende && (
+                <DraftStatusSektion progress={stats.progress} />
+              )}
+
+              {!stats || stats.topADP.length === 0 ? (
+                <p className="eyebrow" style={{ padding: '8px 0 32px' }}>
+                  Ingen picks i {valgtSæson} endnu. Tallene kommer, så snart den første draft går i gang.
+                </p>
+              ) : (
+                <>
                 <DraftSektion
                   titel="Højeste ADP — mest valgt"
                   beskrivelse="Spillere med lavest gennemsnitlig draft-position på tværs af ligaer."
@@ -77,7 +87,7 @@ export default async function DraftStatistikPage({
                   visning="udsving"
                 />
 
-                <div className="draft-format-grid">
+                <div className={`draft-format-grid${stats.perFormat.chopped.length > 0 ? ' tre' : ''}`}>
                   <DraftSektion
                     titel="Managed — top ADP"
                     beskrivelse="Tidligste draftede spillere i managed-ligaer."
@@ -90,13 +100,71 @@ export default async function DraftStatistikPage({
                     stats={stats.perFormat.bestball}
                     visning="adp+picks"
                   />
+                  {stats.perFormat.chopped.length > 0 && (
+                    <DraftSektion
+                      titel="Chopped — top ADP"
+                      beskrivelse="Tidligste draftede spillere i chopped-ligaer."
+                      stats={stats.perFormat.chopped}
+                      visning="adp+picks"
+                    />
+                  )}
                 </div>
-              </div>
-            )}
+                </>
+              )}
+            </div>
           </>
         )}
       </div>
     </div>
+  )
+}
+
+const STATUS_TEKST: Record<DraftStatus, string> = {
+  'ikke-startet': 'Ikke startet',
+  'i-gang': 'I gang',
+  'pause': 'På pause',
+  'afsluttet': 'Afsluttet',
+}
+
+// Slow drafts run over uger, så statuslinjen forklarer hvorfor ADP-tallene
+// stadig er tynde midt i draftsæsonen.
+function DraftStatusSektion({ progress }: { progress: DraftProgress[] }) {
+  const afsluttede = progress.filter(p => p.status === 'afsluttet').length
+  const igang = progress.filter(p => p.status === 'i-gang' || p.status === 'pause').length
+  const picks = progress.reduce((sum, p) => sum + p.picksMade, 0)
+  const total = progress.reduce((sum, p) => sum + p.totalPicks, 0)
+
+  return (
+    <section>
+      <div className="lb-section-head">
+        Draftstatus
+        <span className="dash" />
+      </div>
+      <p className="eyebrow" style={{ marginBottom: 16 }}>
+        {afsluttede} af {progress.length} drafts afsluttet · {igang} i gang · {picks.toLocaleString('da-DK')}
+        {total > 0 && ` af ${total.toLocaleString('da-DK')}`} picks på brættet.
+        Tallene nedenfor opdateres løbende, mens der draftes.
+      </p>
+      <div className="draft-status-grid">
+        {progress.map(p => {
+          const andel = p.totalPicks > 0 ? Math.min(1, p.picksMade / p.totalPicks) : 0
+          return (
+            <div key={p.name} className="draft-status-kort">
+              <div className="draft-status-top">
+                <span className={`type-badge ${p.leagueType}`}>{p.name}</span>
+                <span className={`draft-status-tekst ${p.status}`}>{STATUS_TEKST[p.status]}</span>
+              </div>
+              <div className="draft-status-bar">
+                <span style={{ width: `${Math.round(andel * 100)}%` }} />
+              </div>
+              <div className="draft-status-tal mono">
+                {p.picksMade}{p.totalPicks > 0 && ` / ${p.totalPicks}`} picks
+              </div>
+            </div>
+          )
+        })}
+      </div>
+    </section>
   )
 }
 

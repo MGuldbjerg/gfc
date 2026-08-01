@@ -552,7 +552,42 @@ a { color: inherit; text-decoration: none; }
 @media (max-width: 760px) { .hs-grid { grid-template-columns: 1fr; } }
 
 .draft-format-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; }
-@media (max-width: 640px) { .draft-format-grid { grid-template-columns: 1fr; } }
+.draft-format-grid.tre { grid-template-columns: repeat(3, 1fr); }
+@media (max-width: 980px) { .draft-format-grid.tre { grid-template-columns: 1fr 1fr; } }
+@media (max-width: 640px) { .draft-format-grid, .draft-format-grid.tre { grid-template-columns: 1fr; } }
+
+/* ── Draftstatus (live slow drafts) ─────────────────────────────────────── */
+
+.draft-status-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  gap: 12px;
+}
+.draft-status-kort {
+  border: 1px solid var(--line);
+  background: var(--panel);
+  border-radius: var(--r-sm);
+  padding: 12px 14px;
+}
+.draft-status-top { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.draft-status-tekst {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+.draft-status-tekst.i-gang { color: var(--pos); }
+.draft-status-tekst.afsluttet { color: var(--ink-2); }
+.draft-status-bar {
+  margin-top: 10px;
+  height: 4px;
+  border-radius: 2px;
+  background: color-mix(in oklch, var(--ink) 10%, transparent);
+  overflow: hidden;
+}
+.draft-status-bar span { display: block; height: 100%; background: var(--ink); }
+.draft-status-tal { margin-top: 6px; font-size: 11px; color: var(--muted); }
 
 /* ── VIP cards ──────────────────────────────────────────────────────────── */
 

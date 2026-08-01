@@ -99,7 +99,14 @@ export async function fetchMatchups(leagueId: string, week: number): Promise<Sle
 // Sleeper returns an array of drafts (most leagues have one, but the endpoint
 // is plural). We surface the most recently created one for compatibility with
 // callers that expect a single draft object.
-export async function fetchDraft(leagueId: string): Promise<{ draft_id: string } | null> {
+export interface SleeperDraft {
+  draft_id: string
+  // pre_draft | drafting | paused | complete
+  status?: string | null
+  settings?: { rounds?: number | null; teams?: number | null } | null
+}
+
+export async function fetchDraft(leagueId: string): Promise<SleeperDraft | null> {
   const res = await fetch(`${SLEEPER_BASE_URL}/league/${leagueId}/drafts`)
   if (!res.ok) throw new Error(`Sleeper API error: ${res.status}`)
   const drafts = await res.json()

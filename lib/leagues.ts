@@ -54,6 +54,24 @@ const LEAGUES_2025 = {
   BB6: '1256387182386499584',
 }
 
+// 2026 Sleeper Liga-ID'er (Sleeper-navne: "GFC26 - BB1" osv.)
+// Første sæson med chopped-rækken (18 hold pr. liga).
+const LEAGUES_2026 = {
+  M1: '1388645201504899072',
+  M2: '1388645767886958592',
+  M3: '1388647185700110336',
+  M4: '1388647458459897856',
+  M5: '1388647864976052224',
+  BB1: '1388639623651012608',
+  BB2: '1388642137897181184',
+  BB3: '1388642591716708352',
+  BB4: '1388644086415630336',
+  BB5: '1388644771966230528',
+  C1: '1388648202772701184',
+  C2: '1388649123527282688',
+  C3: '1388650186703663104',
+}
+
 // Maps a fordeling short name ("BB1", "M2", "C1") to the Sleeper league id for
 // a given season. Returns undefined when no league exists yet (e.g. summer,
 // before the season's Sleeper leagues have been created).
@@ -94,4 +112,18 @@ export const ALL_LEAGUES: League[] = [
   { season: '2025', leagueType: 'bestball', name: 'Bestball 4', sleeperId: LEAGUES_2025.BB4 },
   { season: '2025', leagueType: 'bestball', name: 'Bestball 5', sleeperId: LEAGUES_2025.BB5 },
   { season: '2025', leagueType: 'bestball', name: 'Bestball 6', sleeperId: LEAGUES_2025.BB6 },
+  // 2026
+  { season: '2026', leagueType: 'managed', name: 'Managed 1', sleeperId: LEAGUES_2026.M1 },
+  { season: '2026', leagueType: 'managed', name: 'Managed 2', sleeperId: LEAGUES_2026.M2 },
+  { season: '2026', leagueType: 'managed', name: 'Managed 3', sleeperId: LEAGUES_2026.M3 },
+  { season: '2026', leagueType: 'managed', name: 'Managed 4', sleeperId: LEAGUES_2026.M4 },
+  { season: '2026', leagueType: 'managed', name: 'Managed 5', sleeperId: LEAGUES_2026.M5 },
+  { season: '2026', leagueType: 'bestball', name: 'Bestball 1', sleeperId: LEAGUES_2026.BB1 },
+  { season: '2026', leagueType: 'bestball', name: 'Bestball 2', sleeperId: LEAGUES_2026.BB2 },
+  { season: '2026', leagueType: 'bestball', name: 'Bestball 3', sleeperId: LEAGUES_2026.BB3 },
+  { season: '2026', leagueType: 'bestball', name: 'Bestball 4', sleeperId: LEAGUES_2026.BB4 },
+  { season: '2026', leagueType: 'bestball', name: 'Bestball 5', sleeperId: LEAGUES_2026.BB5 },
+  { season: '2026', leagueType: 'chopped', name: 'Chopped 1', sleeperId: LEAGUES_2026.C1 },
+  { season: '2026', leagueType: 'chopped', name: 'Chopped 2', sleeperId: LEAGUES_2026.C2 },
+  { season: '2026', leagueType: 'chopped', name: 'Chopped 3', sleeperId: LEAGUES_2026.C3 },
 ]
