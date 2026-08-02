@@ -88,6 +88,25 @@ export function sleeperIdForLigaNavn(season: string, ligaNavn: string): string |
   )?.sleeperId
 }
 
+// The short names ("BB1", "M2", "C1") that exist for a season, in the same
+// order the fordeling shows them. Used by the manual-assignment admin tool to
+// offer every real league — including ones nobody has been placed in yet.
+export function ligaerForSæson(season: string): { ligaNavn: string; type: LeagueType; sleeperId: string }[] {
+  const typeOrder: Record<LeagueType, number> = { bestball: 0, managed: 1, chopped: 2 }
+  const præfiks: Record<LeagueType, string> = { bestball: 'BB', managed: 'M', chopped: 'C' }
+  return ALL_LEAGUES
+    .filter(l => l.season === season)
+    .map(l => ({
+      ligaNavn: `${præfiks[l.leagueType]}${l.name.match(/\d+$/)?.[0] ?? ''}`,
+      type: l.leagueType,
+      sleeperId: l.sleeperId,
+    }))
+    .sort((a, b) =>
+      typeOrder[a.type] - typeOrder[b.type] ||
+      a.ligaNavn.localeCompare(b.ligaNavn, undefined, { numeric: true })
+    )
+}
+
 export const ALL_LEAGUES: League[] = [
   // 2024
   { season: '2024', leagueType: 'managed', name: 'Managed 1', sleeperId: LEAGUES_2024.M1 },

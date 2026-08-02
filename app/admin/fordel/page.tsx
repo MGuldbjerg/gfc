@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useMemo } from 'react'
+import { useState, useEffect, useMemo, useCallback } from 'react'
 import Link from 'next/link'
 import { CURRENT_SEASON } from '@/lib/leagues'
 import type { FordelingsResultat, LigaForslag, LeagueType, Pin } from '@/lib/fordeling'
@@ -231,16 +231,248 @@ function LigaGrid({ ligaer }: { ligaer: LigaForslag[] }) {
   )
 }
 
+type ManuelDeltager = {
+  profileId: string
+  displayName: string
+  sleeperUsername: string
+  email: string | null
+  harTilmelding: boolean
+  status: string | null
+  preferredTypes: LeagueType[]
+  ligaer: string[]
+}
+
+type ManuelLiga = { ligaNavn: string; type: LeagueType; sleeperId: string; antal: number }
+
+// Nominal league sizes — only used to show "12/12" next to a league so the
+// admin can see where there is room before placing someone.
+const STANDARD_STØRRELSE: Record<LeagueType, number> = { bestball: 12, managed: 12, chopped: 18 }
+
+// Hand-places a participant in one or more leagues. Exists for late entrants:
+// someone who signed up after the deadline never picked a row, so they hold no
+// registration and the automatic fordeling cannot see them at all.
+function ManuelTildeling({ season, onÆndret }: { season: string; onÆndret: () => void }) {
+  const [åben, setÅben] = useState(false)
+  const [data, setData] = useState<{ deltagere: ManuelDeltager[]; ligaer: ManuelLiga[] } | null>(null)
+  const [valgtProfil, setValgtProfil] = useState('')
+  const [valgteLigaer, setValgteLigaer] = useState<string[]>([])
+  const [sendMail, setSendMail] = useState(true)
+  const [gemmer, setGemmer] = useState(false)
+  const [besked, setBesked] = useState('')
+  const [fejl, setFejl] = useState('')
+
+  const hentData = useCallback(async () => {
+    try {
+      const res = await fetch(`/api/admin/fordel/manuel?season=${encodeURIComponent(season)}`)
+      if (!res.ok) return
+      setData(await res.json())
+    } catch {
+      /* stille — panelet virker igen ved næste åbning */
+    }
+  }, [season])
+
+  useEffect(() => {
+    if (åben) hentData()
+  }, [åben, hentData])
+
+  const valgt = data?.deltagere.find(d => d.profileId === valgtProfil) ?? null
+
+  function toggleLiga(navn: string) {
+    setValgteLigaer(prev => (prev.includes(navn) ? prev.filter(n => n !== navn) : [...prev, navn]))
+  }
+
+  async function tildel() {
+    if (!valgt || valgteLigaer.length === 0) return
+    setGemmer(true)
+    setFejl('')
+    setBesked('')
+    try {
+      const res = await fetch('/api/admin/fordel/manuel', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ profileId: valgt.profileId, season, ligaNavne: valgteLigaer, sendMail }),
+      })
+      const svar = await res.json()
+      if (!res.ok) throw new Error(svar.error ?? 'Ukendt fejl')
+
+      const dele = [
+        svar.tilføjet.length > 0
+          ? `${valgt.displayName} tildelt ${svar.tilføjet.join(', ')}`
+          : `${valgt.displayName} var allerede i de valgte ligaer`,
+      ]
+      if (svar.oprettedeTilmelding) dele.push('tilmelding oprettet')
+      if (svar.mailSendt > 0) dele.push(`${svar.mailSendt} mail sendt`)
+      setBesked(`${dele.join(' · ')}.`)
+      setValgteLigaer([])
+      await hentData()
+      onÆndret()
+    } catch (e) {
+      setFejl(e instanceof Error ? e.message : 'Noget gik galt')
+    } finally {
+      setGemmer(false)
+    }
+  }
+
+  async function fjern(profileId: string, ligaNavn: string) {
+    setGemmer(true)
+    setFejl('')
+    setBesked('')
+    try {
+      const res = await fetch('/api/admin/fordel/manuel', {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ profileId, ligaNavn, season }),
+      })
+      const svar = await res.json()
+      if (!res.ok) throw new Error(svar.error ?? 'Ukendt fejl')
+      setBesked(`Fjernet fra ${ligaNavn}.`)
+      await hentData()
+      onÆndret()
+    } catch (e) {
+      setFejl(e instanceof Error ? e.message : 'Noget gik galt')
+    } finally {
+      setGemmer(false)
+    }
+  }
+
+  const udenTilmelding = data?.deltagere.filter(d => !d.harTilmelding) ?? []
+  const utildelte = data?.deltagere.filter(d => d.harTilmelding && d.ligaer.length === 0) ?? []
+
+  return (
+    <div className="lb-col" style={{ marginBottom: 16 }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
+        <button onClick={() => setÅben(o => !o)} className="btn ghost">
+          {åben ? '✕ Luk' : '+ Manuel tildeling'}
+        </button>
+        <span className="eyebrow">
+          Placér en deltager i en liga i hånden — fx en sen tilmelding, der aldrig nåede at vælge række.
+        </span>
+      </div>
+
+      {åben && !data && <p className="eyebrow" style={{ marginTop: 16 }}>Indlæser…</p>}
+
+      {åben && data && (
+        <div style={{ marginTop: 16 }}>
+          {(udenTilmelding.length > 0 || utildelte.length > 0) && (
+            <p className="eyebrow" style={{ marginBottom: 12 }}>
+              {udenTilmelding.length > 0 && (
+                <>{udenTilmelding.length} med profil uden tilmelding til {season}
+                  {' '}({udenTilmelding.slice(0, 4).map(d => d.displayName).join(', ')}
+                  {udenTilmelding.length > 4 && ' m.fl.'}). </>
+              )}
+              {utildelte.length > 0 && <>{utildelte.length} tilmeldt uden liga.</>}
+            </p>
+          )}
+
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 16, alignItems: 'flex-end' }}>
+            <label style={{ display: 'flex', flexDirection: 'column', gap: 5, flex: 1, minWidth: 280 }}>
+              <span className="eyebrow">Deltager</span>
+              <select
+                className="gfc-input"
+                value={valgtProfil}
+                onChange={e => { setValgtProfil(e.target.value); setValgteLigaer([]); setBesked('') }}
+              >
+                <option value="">Vælg deltager…</option>
+                {data.deltagere.map(d => (
+                  <option key={d.profileId} value={d.profileId}>
+                    {d.displayName} (@{d.sleeperUsername})
+                    {!d.harTilmelding ? ' — ingen tilmelding' : d.ligaer.length === 0 ? ' — ingen liga' : ` — ${d.ligaer.join(', ')}`}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 13, height: 38 }}>
+              <input type="checkbox" checked={sendMail} onChange={e => setSendMail(e.target.checked)} />
+              Send ligabesked på mail
+            </label>
+          </div>
+
+          {valgt && (
+            <div style={{ marginTop: 16 }}>
+              {!valgt.email && (
+                <p className="eyebrow" style={{ color: 'var(--accent)', marginBottom: 10 }}>
+                  {valgt.displayName} har ingen login-mail — der kan ikke sendes ligabesked.
+                  Tilføj en e-mail under Tilmeldinger.
+                </p>
+              )}
+
+              {valgt.ligaer.length > 0 && (
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', marginBottom: 14 }}>
+                  <span className="eyebrow">Nuværende ligaer</span>
+                  {valgt.ligaer.map(navn => (
+                    <span key={navn} className="type-badge" style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+                      {navn}
+                      <button
+                        onClick={() => fjern(valgt.profileId, navn)}
+                        disabled={gemmer}
+                        title={`Fjern fra ${navn}`}
+                        style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--accent)', padding: 0, fontSize: 12 }}
+                      >
+                        ✕
+                      </button>
+                    </span>
+                  ))}
+                </div>
+              )}
+
+              <span className="eyebrow">Tildel liga</span>
+              <div className="manuel-liga-grid">
+                {data.ligaer.map(liga => {
+                  const iForvejen = valgt.ligaer.includes(liga.ligaNavn)
+                  const kapacitet = STANDARD_STØRRELSE[liga.type]
+                  const fuld = liga.antal >= kapacitet
+                  return (
+                    <label
+                      key={liga.ligaNavn}
+                      className={`manuel-liga${iForvejen ? ' i-forvejen' : ''}`}
+                      title={iForvejen ? 'Allerede i denne liga' : fuld ? 'Ligaen er fuld — tildeling overfylder den' : undefined}
+                    >
+                      <input
+                        type="checkbox"
+                        disabled={iForvejen}
+                        checked={iForvejen || valgteLigaer.includes(liga.ligaNavn)}
+                        onChange={() => toggleLiga(liga.ligaNavn)}
+                      />
+                      <span className={`type-badge ${liga.type}`}>{liga.ligaNavn}</span>
+                      <span className={`mono manuel-liga-antal${fuld ? ' fuld' : ''}`}>
+                        {liga.antal}/{kapacitet}
+                      </span>
+                    </label>
+                  )
+                })}
+              </div>
+
+              <div style={{ display: 'flex', alignItems: 'center', gap: 16, marginTop: 16, flexWrap: 'wrap' }}>
+                <button className="btn" disabled={gemmer || valgteLigaer.length === 0} onClick={tildel}>
+                  {gemmer ? 'Gemmer…' : `Tildel ${valgteLigaer.length > 0 ? valgteLigaer.join(', ') : 'liga'}`}
+                </button>
+                {besked && <span style={{ color: 'var(--pos)', fontSize: 13 }}>✓ {besked}</span>}
+                {fejl && <span style={{ color: 'var(--accent)', fontSize: 13 }}>{fejl}</span>}
+              </div>
+            </div>
+          )}
+
+          <p className="eyebrow" style={{ marginTop: 16, color: 'var(--muted)' }}>
+            Mangler personen helt? Opret profilen under Tilmeldinger → “Tilføj deltager manuelt”.
+            Bemærk: en ny fordeling under “Ny fordeling” overskriver hele sæsonen, også manuelle tildelinger.
+          </p>
+        </div>
+      )}
+    </div>
+  )
+}
+
 // Read-only view of whatever is currently confirmed in the DB for a season —
 // revisitable any time, independent of the draft/preview tool below, and
 // still available after CURRENT_SEASON moves on (via the season picker).
 function AktuelFordeling({
-  historik, loading, onSkiftSæson, gemtBesked,
+  historik, loading, onSkiftSæson, gemtBesked, onÆndret,
 }: {
   historik: HistorikData | null
   loading: boolean
   onSkiftSæson: (season: string) => void
   gemtBesked: string
+  onÆndret: () => void
 }) {
   const season = historik?.season ?? CURRENT_SEASON
   const seasons = historik?.seasons.length ? historik.seasons : [CURRENT_SEASON]
@@ -272,6 +504,8 @@ function AktuelFordeling({
           {seasons.map(s => <option key={s} value={s}>{s}</option>)}
         </select>
       </div>
+
+      <ManuelTildeling season={season} onÆndret={onÆndret} />
 
       {loading ? (
         <div className="lb-col" style={{ textAlign: 'center', padding: 48 }}>
@@ -458,6 +692,7 @@ export default function FordelPage() {
           loading={historikLoading}
           onSkiftSæson={hentHistorik}
           gemtBesked={gemtBesked}
+          onÆndret={() => hentHistorik(historik?.season ?? CURRENT_SEASON)}
         />
       )}
 
