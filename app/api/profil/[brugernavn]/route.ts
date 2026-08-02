@@ -2,7 +2,7 @@
 
 import { NextRequest, NextResponse } from 'next/server'
 import { queryOne } from '@/lib/turso'
-import { hentProfilData } from '@/lib/profil'
+import { hentProfilData, hentTilmeldteSæsoner } from '@/lib/profil'
 import { beregnBadges } from '@/lib/badges'
 import { listSæsoner, listAfsluttedeSæsoner, hentSingleWeekRekord, hentSæsonVinder } from '@/lib/historie'
 
@@ -41,6 +41,7 @@ export async function GET(
     erUgeRekordHolder,
     erSæsonVinder,
     alleKendteSæsoner: await listSæsoner(),
+    tilmeldteSæsoner: await hentTilmeldteSæsoner(profil.sleeperUsername),
   })
 
   return NextResponse.json({

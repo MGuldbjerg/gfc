@@ -1,6 +1,6 @@
 import { notFound } from 'next/navigation'
 import Link from 'next/link'
-import { hentProfilData } from '@/lib/profil'
+import { hentProfilData, hentTilmeldteSæsoner } from '@/lib/profil'
 import { beregnBadges } from '@/lib/badges'
 import BadgeHylde from '@/components/BadgeHylde'
 import { listSæsoner, listAfsluttedeSæsoner, hentSingleWeekRekord, hentSæsonVinder } from '@/lib/historie'
@@ -59,6 +59,7 @@ export default async function ProfilPage({ params }: Props) {
     erUgeRekordHolder,
     erSæsonVinder,
     alleKendteSæsoner: await listSæsoner(),
+    tilmeldteSæsoner: await hentTilmeldteSæsoner(profil.sleeperUsername),
   })
 
   return (

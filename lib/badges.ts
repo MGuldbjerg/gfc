@@ -46,7 +46,7 @@ export const BADGES: Record<BadgeType, BadgeDef> = {
     id: 'og',
     emoji: '🔥',
     navn: 'OG',
-    beskrivelse: 'Deltaget i alle GFC-sæsoner fra starten',
+    beskrivelse: 'Været med i alle GFC-sæsoner fra starten',
     farve: 'bg-gradient-to-br from-yellow-600 to-orange-600',
   },
   raketstart: {
@@ -81,7 +81,7 @@ export const BADGES: Record<BadgeType, BadgeDef> = {
     id: 'saeson_veteran',
     emoji: '⭐',
     navn: 'Veteran',
-    beskrivelse: 'Deltaget i 2 eller flere GFC-sæsoner',
+    beskrivelse: 'Været med i 2 eller flere GFC-sæsoner',
     farve: 'bg-gradient-to-br from-slate-500 to-slate-600',
   },
   alltid_top20: {
@@ -98,6 +98,13 @@ import type { SæsonData } from './profil'
 
 // `alleKendteSæsoner` is passed in rather than read from the league constants,
 // because seasons can also be created from the admin UI (see lib/seasonConfig).
+//
+// `tilmeldteSæsoner` are the seasons the person signed up for. Deltagelses-
+// badges (OG, veteran) count *wanting* to play, not getting placed: when the
+// numbers don't divide into whole leagues, someone can be left out through no
+// fault of their own, and they should not lose their streak over it. Badges
+// that describe results (liga_vinder, konsistent_konge, …) still require
+// actually having played.
 export function beregnBadges(
   sæsoner: SæsonData[],
   sleeperUserId: string,
@@ -105,19 +112,21 @@ export function beregnBadges(
     erUgeRekordHolder?: boolean
     erSæsonVinder?: boolean
     alleKendteSæsoner?: string[]
+    tilmeldteSæsoner?: string[]
   }
 ): BadgeType[] {
   const earned = new Set<BadgeType>()
 
-  const sæsonÅr = [...new Set(sæsoner.map(s => s.sæson))]
-  const alleKendteSæsoner = opts?.alleKendteSæsoner ?? sæsonÅr
+  const spilletÅr = [...new Set(sæsoner.map(s => s.sæson))]
+  const deltagelsesÅr = [...new Set([...spilletÅr, ...(opts?.tilmeldteSæsoner ?? [])])]
+  const alleKendteSæsoner = opts?.alleKendteSæsoner ?? deltagelsesÅr
 
-  // OG — deltaget i alle sæsoner
-  const harAlleSæsoner = alleKendteSæsoner.every(år => sæsonÅr.includes(år))
+  // OG — været med i alle sæsoner
+  const harAlleSæsoner = alleKendteSæsoner.every(år => deltagelsesÅr.includes(år))
   if (harAlleSæsoner && alleKendteSæsoner.length >= 2) earned.add('og')
 
   // Veteran — 2+ sæsoner
-  if (sæsonÅr.length >= 2) earned.add('saeson_veteran')
+  if (deltagelsesÅr.length >= 2) earned.add('saeson_veteran')
 
   // Peak — all-time single-week record holder in any league (cross-player, passed from caller)
   if (opts?.erUgeRekordHolder) earned.add('peak')

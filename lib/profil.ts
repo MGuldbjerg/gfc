@@ -7,7 +7,22 @@ import {
   getDrafts,
 } from './sleeper'
 import { hentAlleLigaer } from './seasonConfig'
+import { query } from './turso'
 import type { GFCLeague } from '@/types/sleeper'
+
+// Which seasons this person signed up for — regardless of whether they ended up
+// in a league. Deltagelsesbadges are based on this, so nobody loses a streak
+// because the numbers didn't divide into whole leagues that year.
+export async function hentTilmeldteSæsoner(sleeperUsername: string): Promise<string[]> {
+  const rows = await query<{ season: string }>(
+    `SELECT DISTINCT r.season
+       FROM registrations r
+       JOIN profiles p ON p.id = r.profile_id
+      WHERE p.username = ? COLLATE NOCASE`,
+    [sleeperUsername]
+  )
+  return rows.map(r => r.season)
+}
 
 export interface UgeScore {
   uge: number
