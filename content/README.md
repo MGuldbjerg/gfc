@@ -1,65 +1,52 @@
 # Indhold
 
-Al brugervendt tekst på GFC-platformen ligger her, så den kan redigeres uden at røre kode.
+> **Rediger teksten i /admin → fanen "Indhold".** Du behøver ikke røre filerne
+> her — de er kun det, siden falder tilbage til, hvis en ændring fortrydes.
 
-Der findes **to slags indhold**:
+## Sådan retter du tekst
 
-| Filtype | Bruges til | Hvor |
+1. Gå til <https://www.fantasychallenge.dk/admin> og vælg fanen **Indhold**.
+2. **Sider** — regler, FAQ, sponsorer, om-GFC, VIP og alt du selv opretter.
+   Vælg siden i listen, ret teksten, tryk **Gem ændringer**. Siden er live inden
+   for et minut.
+3. **Forside og menu** — de enkelte tekststumper på forsiden, i menuen og i
+   tilmeldingsformularen. Ret feltet, tryk **Gem**.
+
+Har du rettet noget, du fortryder, står der en **Fortryd**-knap ved siden af.
+Den sætter teksten tilbage til den oprindelige — der er ingen vej til at ødelægge
+sitet med en tekstændring.
+
+### Ny side
+
+Under **Sider** → **+ Ny side**. Adressen bliver til URL'en: skriver du
+`praemier`, ligger siden på `/praemier`. Sæt flueben i **Vis i menuen**, hvis den
+skal stå i navigationsbjælken.
+
+### Pladsholdere
+
+Skriver du en af disse i teksten, bliver den erstattet automatisk overalt:
+
+| Pladsholder | Bliver til | Sættes i |
 |---|---|---|
-| **Markdown-sider** (`.md`) | Sider med løbende tekst — regler, sponsorer, FAQ, om-sider | `content/sider/` |
-| **Tekstfil** (`tekst.ts`) | Strukturerede sider — forsiden, navigation, tilmeldingsformularen | `content/tekst.ts` |
+| `{sæson}` | 2026 | Sæson-fanen (aktuel sæson) |
+| `{deadline}` | 29. juli kl. 18:00 | Sæson-fanen → Tilmeldingsfrist |
+| `{draftstart}` | 4. juli | Sæson-fanen → Nøgledatoer |
+| `{fordelingsdato}` | 3. juli | Sæson-fanen → Nøgledatoer |
+| `{sæsonstart}` | 10. september | Sæson-fanen → Nøgledatoer |
 
----
+Så skal en dato kun rettes ét sted, og den er rettet i al tekst på sitet.
 
-## Markdown-sider (anbefalet for nye sider)
-
-Hver `.md`-fil i `content/sider/` bliver til en side på sitet. Filnavnet bliver til URL'en.
-
-| Fil | Bliver til |
-|---|---|
-| `content/sider/regler.md` | `https://fantasychallenge.dk/regler` |
-| `content/sider/sponsorer.md` | `https://fantasychallenge.dk/sponsorer` |
-
-### Sådan tilføjer du en helt ny side
-
-1. Gå til https://github.com/MGuldbjerg/gfc/tree/main/content/sider
-2. Tryk **Add file → Create new file**.
-3. Navngiv filen efter URL'en du vil have — fx `faq.md` (URL'en bliver `/faq`). Brug kun små bogstaver og bindestreger, ingen mellemrum eller danske tegn i filnavnet.
-4. Første linje skal være `# Sidens overskrift` — det bliver siden's titel.
-5. Skriv resten i markdown (se eksempel nedenfor).
-6. Scroll ned og tryk **Commit new file**.
-7. Vercel deployer inden for et minut — så er siden live.
-
-### Sådan tilføjer du linket til menuen
-
-Når du har oprettet en ny side, skal du selv tilføje linket til navigationsbjælken:
-
-1. Åbn `content/tekst.ts`
-2. I `nav`-blokken, tilføj fx `faq: 'FAQ',`
-3. Åbn `components/Nav.tsx` og tilføj `{ href: '/faq', label: tekst.nav.faq },` til `links`-listen
-
-### Sådan redigerer du en eksisterende side
-
-1. Åbn fx https://github.com/MGuldbjerg/gfc/blob/main/content/sider/regler.md
-2. Tryk på blyantsikonet.
-3. Ret teksten.
-4. Tryk **Commit changes**. Vercel deployer automatisk.
-
-### Markdown-eksempel
+### Markdown — sådan formaterer du
 
 ```markdown
-# Sidens titel
+## En underoverskrift
 
 Et almindeligt afsnit. Skriv som i Word eller Mail.
-
-## En underoverskrift
 
 - Punkt et
 - Punkt to
 - **Fed tekst** og *kursiv*
 - Et [link til Google](https://google.com)
-
-### Mindre underoverskrift
 
 > Et citat eller en fremhævet tekst.
 
@@ -70,27 +57,24 @@ Et almindeligt afsnit. Skriv som i Word eller Mail.
 
 ---
 
-## Strukturerede sider (`tekst.ts`)
+## Hvad filerne her så er til
 
-Forsiden, navigationen og tilmeldingsformularen er bygget med struktur (kort, lister, knapper). De redigeres i `content/tekst.ts`.
+| Fil | Rolle |
+|---|---|
+| `content/sider/*.md` | Den oprindelige tekst for hver side. Bruges indtil siden rettes i /admin, og igen hvis ændringen fortrydes. |
+| `content/tekst.ts` | De oprindelige tekststumper til forside, menu og tilmeldingsformular. Samme rolle. |
 
-### Sådan redigerer du
+Teknisk: en ændring i /admin gemmes som en override i databasen (`side_indhold`
+og `tekst_override`) og vinder over filen. Fortryd sletter override-rækken.
+Se `lib/indhold.ts`.
 
-1. Åbn https://github.com/MGuldbjerg/gfc/blob/main/content/tekst.ts
-2. Find strengen du vil ændre — den er i anførselstegn.
-3. Skift tekst mellem `'` og `'`.
-4. **Behold** `'` og `,` præcis som de er.
-5. **Behold** `{sæson}` hvor du ser det — det erstattes automatisk med 2026 (eller hvad det aktuelle år er).
-6. Tryk **Commit changes**.
-
-### Ændre årstal globalt
-
-Ændr `CURRENT_SEASON = '2026'` i `lib/leagues.ts`. Det opdaterer alle `{sæson}`-pladsholdere i hele sitet.
-
----
+**Forside og menu** viser kun de tekststumper, der faktisk står på sitet.
+`tekst.ts` indeholder også gamle nøgler (bl.a. `tilmeld.*`), som ingen side
+læser — tilmeldingsformularen har sin egen tekst i koden. De vises ikke i
+/admin, fordi et felt, der ikke gør noget, er værre end intet felt.
+Skal formularens tekst kunne redigeres, er det en kodeopgave.
 
 ## Hvor må du IKKE redigere?
 
-- `.ts`-filer (TypeScript-kode) — undtagen `tekst.ts` og `lib/leagues.ts` ovenfor.
-- `.tsx`-filer — det er sidernes struktur.
-- Hvis du er i tvivl, så spørg.
+- `.ts`- og `.tsx`-filer — det er kode.
+- Er du i tvivl, så spørg.

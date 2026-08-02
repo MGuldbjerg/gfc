@@ -5,7 +5,8 @@ import {
   playerLabel,
   type SleeperPlayer,
 } from './sleeper'
-import { ALL_LEAGUES, type LeagueType } from './leagues'
+import { type LeagueType } from './leagues'
+import { hentAlleLigaer } from './seasonConfig'
 
 export interface ADPStats {
   playerId: string
@@ -46,7 +47,7 @@ export interface DraftStatistics {
 }
 
 export async function calculateDraftStatistics(season: string): Promise<DraftStatistics> {
-  const leagues = ALL_LEAGUES.filter(l => l.season === season && l.sleeperId)
+  const leagues = (await hentAlleLigaer()).filter(l => l.season === season && l.sleeperId)
   if (leagues.length === 0) {
     return emptyStats()
   }

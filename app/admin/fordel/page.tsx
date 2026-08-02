@@ -190,7 +190,7 @@ function FordelingsTjek({ resultat }: { resultat: FordelingsResultat }) {
   )
 }
 
-type HistorikData = { season: string; seasons: string[]; ligaer: LigaForslag[] }
+type HistorikData = { season: string; seasons: string[]; ligaer: LigaForslag[]; aktuelSæson: string }
 
 function LigaGrid({ ligaer }: { ligaer: LigaForslag[] }) {
   return (
@@ -474,7 +474,7 @@ function AktuelFordeling({
   gemtBesked: string
   onÆndret: () => void
 }) {
-  const season = historik?.season ?? CURRENT_SEASON
+  const season = historik?.season ?? CURRENT_SEASON // CURRENT_SEASON = fallback indtil historikken er hentet
   const seasons = historik?.seasons.length ? historik.seasons : [CURRENT_SEASON]
 
   return (
@@ -564,6 +564,9 @@ export default function FordelPage() {
   // fordeling"), without setting state as a side effect of the fetch itself.
   const [visningValg, setVisningValg] = useState<'aktuel' | 'ny' | null>(null)
   const [historik, setHistorik] = useState<HistorikData | null>(null)
+  // Which season the preview/bekræft flow writes to. Comes from the server with
+  // the historik payload; CURRENT_SEASON is only the fallback until that lands.
+  const aktuelSæson = historik?.aktuelSæson ?? CURRENT_SEASON
   const [historikLoading, setHistorikLoading] = useState(true)
   const [gemtBesked, setGemtBesked] = useState('')
 
@@ -589,7 +592,7 @@ export default function FordelPage() {
       .then(data => setDeltagere(data.deltagere ?? []))
       .catch(() => {})
 
-    fetch(`/api/admin/fordel/historik?season=${encodeURIComponent(CURRENT_SEASON)}`)
+    fetch('/api/admin/fordel/historik')
       .then(r => r.json())
       .then((data: HistorikData) => {
         setHistorik(data)
@@ -636,7 +639,7 @@ export default function FordelPage() {
       const res = await fetch('/api/admin/fordel/bekraeft', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ ligaer: resultat.ligaer, sæson: CURRENT_SEASON }),
+        body: JSON.stringify({ ligaer: resultat.ligaer, sæson: aktuelSæson }),
       })
       if (!res.ok) {
         setStatus(`Noget gik galt (${res.status}). Prøv igen.`)
@@ -645,7 +648,7 @@ export default function FordelPage() {
       const data = await res.json()
       if (data.ok) {
         setGemtBesked(`${data.tildelt} deltagere tildelt ligaer.${data.fejl?.length ? ` ${data.fejl.length} fejl.` : ''}`)
-        await hentHistorik(CURRENT_SEASON)
+        await hentHistorik(aktuelSæson)
         setVisning('aktuel')
       } else {
         setStatus('Noget gik galt. Prøv igen.')
@@ -665,7 +668,7 @@ export default function FordelPage() {
           <span className="eyebrow">Admin</span>
         </div>
         <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 16, flexWrap: 'wrap' }}>
-          <h1>Ligafordeling — {CURRENT_SEASON}</h1>
+          <h1>Ligafordeling — {aktuelSæson}</h1>
           <Link href="/admin" className="eyebrow" style={{ color: 'var(--muted)' }}>← Admin</Link>
         </div>
       </div>
@@ -692,7 +695,7 @@ export default function FordelPage() {
           loading={historikLoading}
           onSkiftSæson={hentHistorik}
           gemtBesked={gemtBesked}
-          onÆndret={() => hentHistorik(historik?.season ?? CURRENT_SEASON)}
+          onÆndret={() => hentHistorik(historik?.season ?? aktuelSæson)}
         />
       )}
 

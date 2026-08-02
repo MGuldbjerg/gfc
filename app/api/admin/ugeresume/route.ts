@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@/auth'
 import { getAdminEmails } from '@/auth.config'
-import { CURRENT_SEASON } from '@/lib/leagues'
+import { hentAktuelSæson } from '@/lib/seasonConfig'
 import { fetchState } from '@/lib/sleeper'
 import { byggUgeresume } from '@/lib/ugeresume'
 
@@ -24,6 +24,6 @@ export async function GET(req: NextRequest) {
   }
   week = Math.min(17, Math.max(1, week))
 
-  const resultat = await byggUgeresume(CURRENT_SEASON, week)
+  const resultat = await byggUgeresume(await hentAktuelSæson(), week)
   return NextResponse.json(resultat)
 }

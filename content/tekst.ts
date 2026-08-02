@@ -1,10 +1,11 @@
-// GFC user-facing text.
+// GFC user-facing text — the shipped defaults.
 //
-// Edit any string in this file to change what appears on the site.
-// Vercel will automatically deploy the change when you push to GitHub.
+// These strings are editable from /admin → Indhold → "Forside og menu", which
+// stores an override per dot-path in the database. What is here is what the
+// site falls back to when an override is deleted, so keep it sensible.
 //
-// The placeholder {sæson} is replaced with the current season (e.g. 2026).
-// To bump the year for all text at once, change CURRENT_SEASON in lib/leagues.ts.
+// Placeholders resolved at render time (see lib/indhold.ts): {sæson},
+// {deadline}, {draftstart}, {fordelingsdato}, {sæsonstart}.
 
 import { CURRENT_SEASON } from '@/lib/leagues'
 
@@ -56,13 +57,13 @@ export const tekst = {
     tidslinjeTitel: 'Sådan ser sæsonen ud',
     tidslinje: [
       { tid: 'Maj–juni', hvad: 'Tilmelding åben' },
-      { tid: '4. juli', hvad: 'Slow drafts starter' },
+      { tid: '{draftstart}', hvad: 'Slow drafts starter' },
       { tid: 'September', hvad: 'NFL-sæsonen starter' },
       { tid: 'Uge 15–17', hvad: 'Slutspil og finale' },
     ],
 
     finalCtaTitel: 'Klar til at spille med?',
-    finalCtaTekst: 'Slow drafts starter 4. juli. Tilmeld dig nu, vælg dine rækker, og lad os fordele dig i en liga.',
+    finalCtaTekst: 'Slow drafts starter {draftstart}. Tilmeld dig nu, vælg dine rækker, og lad os fordele dig i en liga.',
     finalCta: 'Tilmeld dig GFC {sæson}',
   },
 

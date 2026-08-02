@@ -2,7 +2,6 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { CURRENT_SEASON } from '@/lib/leagues'
 
 const RÆKKER = [
   { id: 'bestball', label: 'Bestball', desc: 'Automatiske startere — sat-og-glem' },
@@ -12,7 +11,13 @@ const RÆKKER = [
 
 const PRIORITET_LABEL = ['1. prioritet', '2. prioritet', '3. prioritet']
 
-export default function TilmeldForm({ invite = null }: { invite?: string | null }) {
+export default function TilmeldForm({
+  invite = null,
+  sæson,
+}: {
+  invite?: string | null
+  sæson: string
+}) {
   const router = useRouter()
   const [prioritet, setPrioritet] = useState<string[]>(['bestball', 'managed'])
   const [undgaaAmerikanskVip, setUndgaaAmerikanskVip] = useState(false)
@@ -60,7 +65,7 @@ export default function TilmeldForm({ invite = null }: { invite?: string | null 
           <span className="dash" />
           <span className="eyebrow">Tilmelding</span>
         </div>
-        <h1 className="form-card-title">GFC {CURRENT_SEASON}</h1>
+        <h1 className="form-card-title">GFC {sæson}</h1>
         <p className="form-card-sub">
           Vælg de rækker du vil spille og sæt dem i rækkefølge. Vi fordeler dig efter din 1. prioritet hvis muligt.
         </p>
@@ -147,7 +152,7 @@ export default function TilmeldForm({ invite = null }: { invite?: string | null 
             className="btn"
             style={{ justifyContent: 'center', opacity: (loading || prioritet.length === 0) ? 0.5 : 1, marginTop: 4 }}
           >
-            {loading ? 'Gemmer…' : `Tilmeld mig GFC ${CURRENT_SEASON}`}
+            {loading ? 'Gemmer…' : `Tilmeld mig GFC ${sæson}`}
             {!loading && <span className="arrow" aria-hidden />}
           </button>
 

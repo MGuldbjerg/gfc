@@ -3,56 +3,24 @@ import type { Metadata } from 'next'
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
 import rehypeRaw from 'rehype-raw'
-import { listSlugs, loadSide } from '@/lib/sider'
-import { CURRENT_SEASON } from '@/lib/leagues'
-import { getSeasonSettings } from '@/lib/seasonSettings'
+import { hentAlleSlugs, hentSide } from '@/lib/indhold'
 
-export const dynamicParams = false
-// Markdown pages may embed {sæson} and {deadline}. We resolve those at render
-// time and revalidate periodically, so an admin deadline change shows up
-// without a redeploy.
+// Pages can be created in the admin UI, so a slug that did not exist at build
+// time must still render — hence dynamicParams. Text and placeholders are
+// resolved per render and cached for `revalidate` seconds, so an admin edit
+// shows up without a redeploy.
+export const dynamicParams = true
 export const revalidate = 600
 
 export async function generateStaticParams() {
-  return listSlugs().map(slug => ({ slug }))
-}
-
-// Formats an ISO-with-offset deadline as Danish wall-clock time, e.g.
-// "3. juli kl. 18:00". Returns a graceful fallback when no deadline is set.
-function formatDeadline(iso: string | null): string {
-  if (!iso) return 'endnu ikke fastsat'
-  const d = new Date(iso)
-  if (Number.isNaN(d.getTime())) return 'endnu ikke fastsat'
-  const dato = d.toLocaleDateString('da-DK', {
-    timeZone: 'Europe/Copenhagen', day: 'numeric', month: 'long',
-  })
-  const tid = d
-    .toLocaleTimeString('da-DK', {
-      timeZone: 'Europe/Copenhagen', hour: '2-digit', minute: '2-digit',
-    })
-    .replace('.', ':') // da-DK uses "18.00"; the site writes times with a colon
-  return `${dato} kl. ${tid}`
-}
-
-// Replaces {sæson} and {deadline} placeholders in markdown body text.
-// Only touches the database when the page actually uses {deadline}.
-async function substituerPladsholdere(body: string): Promise<string> {
-  let out = body
-  if (out.includes('{sæson}')) {
-    out = out.replace(/\{sæson\}/g, CURRENT_SEASON)
-  }
-  if (out.includes('{deadline}')) {
-    const settings = await getSeasonSettings(CURRENT_SEASON)
-    out = out.replace(/\{deadline\}/g, formatDeadline(settings?.signupDeadline ?? null))
-  }
-  return out
+  return (await hentAlleSlugs()).map(slug => ({ slug }))
 }
 
 export async function generateMetadata(
   { params }: { params: Promise<{ slug: string }> }
 ): Promise<Metadata> {
   const { slug } = await params
-  const side = loadSide(slug)
+  const side = await hentSide(slug)
   if (!side) return {}
   return { title: `${side.title} · GFC` }
 }
@@ -63,10 +31,10 @@ export default async function MarkdownSide({
   params: Promise<{ slug: string }>
 }) {
   const { slug } = await params
-  const side = loadSide(slug)
+  const side = await hentSide(slug)
   if (!side) notFound()
 
-  const body = await substituerPladsholdere(side.body)
+  const body = side.body
 
   return (
     <div className="gfc-app">

@@ -2,7 +2,7 @@ import { redirect } from 'next/navigation'
 import Link from 'next/link'
 import { auth, signOut } from '@/auth'
 import { query, queryOne, execute } from '@/lib/turso'
-import { CURRENT_SEASON } from '@/lib/leagues'
+import { hentAktuelSæson } from '@/lib/seasonConfig'
 
 export const dynamic = 'force-dynamic'
 
@@ -26,6 +26,7 @@ type LeagueAssignmentRow = {
 }
 
 export default async function MinSide() {
+  const sæson = await hentAktuelSæson()
   const session = await auth()
   if (!session?.user?.id) redirect('/log-ind')
 
@@ -40,7 +41,7 @@ export default async function MinSide() {
     `SELECT id, preferred_types, status
        FROM registrations
       WHERE profile_id = ? AND season = ?`,
-    [session.user.id, CURRENT_SEASON]
+    [session.user.id, sæson]
   )
 
   const tildelteLigaer = reg
@@ -58,7 +59,7 @@ export default async function MinSide() {
         `SELECT season FROM registrations
           WHERE profile_id = ? AND season <> ?
           ORDER BY season DESC LIMIT 1`,
-        [session.user.id, CURRENT_SEASON]
+        [session.user.id, sæson]
       )
     : null
 
@@ -75,7 +76,7 @@ export default async function MinSide() {
     if (!s?.user?.id) return
     await execute(
       'DELETE FROM registrations WHERE profile_id = ? AND season = ?',
-      [s.user.id, CURRENT_SEASON]
+      [s.user.id, sæson]
     )
     redirect('/min-side')
   }
@@ -107,9 +108,9 @@ export default async function MinSide() {
 
         {!reg
           ? tidligereReg
-            ? <BannerVelkommenTilbage navn={profil.display_name} sidsteSæson={tidligereReg.season} />
-            : <BannerTilmeldSaeson />
-          : <StatusKort rækker={rækker} tildelteLigaer={tildelteLigaer} frameld={frameld} />
+            ? <BannerVelkommenTilbage navn={profil.display_name} sidsteSæson={tidligereReg.season} sæson={sæson} />
+            : <BannerTilmeldSaeson sæson={sæson} />
+          : <StatusKort rækker={rækker} tildelteLigaer={tildelteLigaer} frameld={frameld} sæson={sæson} />
         }
 
         <div style={{ marginTop: 32, display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 12 }}>
@@ -140,7 +141,7 @@ export default async function MinSide() {
   )
 }
 
-function BannerVelkommenTilbage({ navn, sidsteSæson }: { navn: string; sidsteSæson: string }) {
+function BannerVelkommenTilbage({ navn, sidsteSæson, sæson }: { navn: string; sidsteSæson: string; sæson: string }) {
   return (
     <div style={{
       padding: '32px 28px',
@@ -155,13 +156,13 @@ function BannerVelkommenTilbage({ navn, sidsteSæson }: { navn: string; sidsteS�
     }}>
       <div style={{ flex: 1, minWidth: 200 }}>
         <p className="eyebrow" style={{ marginBottom: 10, color: 'color-mix(in oklch, var(--bg) 55%, transparent)' }}>
-          GFC {CURRENT_SEASON}
+          GFC {sæson}
         </p>
         <p style={{ fontSize: 22, fontFamily: 'var(--font-display)', fontWeight: 700, letterSpacing: '-0.02em', marginBottom: 10 }}>
           Velkommen tilbage, {navn}
         </p>
         <p style={{ fontSize: 15, lineHeight: 1.55, color: 'color-mix(in oklch, var(--bg) 70%, transparent)' }}>
-          Du deltog i GFC {sidsteSæson} — tilmeld dig {CURRENT_SEASON} og vær med igen.
+          Du deltog i GFC {sidsteSæson} — tilmeld dig {sæson} og vær med igen.
         </p>
       </div>
       <Link href="/saeson/tilmeld" style={{
@@ -179,13 +180,13 @@ function BannerVelkommenTilbage({ navn, sidsteSæson }: { navn: string; sidsteS�
         flexShrink: 0,
         whiteSpace: 'nowrap',
       }}>
-        Tilmeld mig {CURRENT_SEASON}
+        Tilmeld mig {sæson}
       </Link>
     </div>
   )
 }
 
-function BannerTilmeldSaeson() {
+function BannerTilmeldSaeson({ sæson }: { sæson: string }) {
   return (
     <div style={{
       padding: '32px 28px',
@@ -199,9 +200,9 @@ function BannerTilmeldSaeson() {
       gap: 24,
     }}>
       <div style={{ flex: 1, minWidth: 200 }}>
-        <p className="eyebrow" style={{ marginBottom: 10 }}>GFC {CURRENT_SEASON} er åben</p>
+        <p className="eyebrow" style={{ marginBottom: 10 }}>GFC {sæson} er åben</p>
         <p style={{ color: 'var(--ink-2)', fontSize: 15, lineHeight: 1.55 }}>
-          Du har en profil, men er ikke tilmeldt {CURRENT_SEASON} endnu. Tilmeld dig nu og vælg dine rækker.
+          Du har en profil, men er ikke tilmeldt {sæson} endnu. Tilmeld dig nu og vælg dine rækker.
         </p>
       </div>
       <Link href="/saeson/tilmeld" className="btn">
@@ -213,11 +214,12 @@ function BannerTilmeldSaeson() {
 }
 
 function StatusKort({
-  rækker, tildelteLigaer, frameld,
+  rækker, tildelteLigaer, frameld, sæson,
 }: {
   rækker: string[]
   tildelteLigaer: LeagueAssignmentRow[]
   frameld: () => Promise<void>
+  sæson: string
 }) {
   return (
     <div style={{
@@ -228,7 +230,7 @@ function StatusKort({
       boxShadow: 'var(--sh-1)',
     }}>
       <p className="eyebrow" style={{ color: 'var(--pos)', marginBottom: 12 }}>
-        Tilmeldt GFC {CURRENT_SEASON}
+        Tilmeldt GFC {sæson}
       </p>
       <p style={{ fontFamily: 'var(--font-display)', fontSize: 22, fontWeight: 600, letterSpacing: '-0.02em', color: 'var(--ink)' }}>
         {tildelteLigaer.length > 0

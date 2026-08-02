@@ -4,7 +4,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@/auth'
 import { query } from '@/lib/turso'
 import { beregnFordeling, type Deltager, type LeagueType, type Pin } from '@/lib/fordeling'
-import { CURRENT_SEASON, sleeperIdForLigaNavn } from '@/lib/leagues'
+import { hentAktuelSæson, hentSleeperIdForNavn } from '@/lib/seasonConfig'
 
 const VALID_TYPES: LeagueType[] = ['bestball', 'managed', 'chopped']
 
@@ -27,6 +27,8 @@ export async function POST(req: NextRequest) {
 
   const { ligaStørrelse = 12, choppedStørrelse = 18, pins = [] } = await req.json().catch(() => ({}))
 
+  const sæson = await hentAktuelSæson()
+
   const tilmeldinger = await query<TilmeldingRow>(
     `SELECT r.id AS registration_id,
             r.preferred_types,
@@ -39,7 +41,7 @@ export async function POST(req: NextRequest) {
        FROM registrations r
        JOIN profiles p ON p.id = r.profile_id
       WHERE r.season = ? AND r.status = 'registered'`,
-    [CURRENT_SEASON]
+    [sæson]
   )
 
   if (tilmeldinger.length === 0) {
@@ -67,11 +69,12 @@ export async function POST(req: NextRequest) {
 
   const resultat = beregnFordeling(deltagere, ligaStørrelse, validPins, choppedStørrelse)
 
-  // Attach Sleeper id when the league already exists in lib/leagues.ts for
-  // this season. Stays undefined when the Sleeper leagues haven't been created
-  // yet — bekræft then persists only the name.
+  // Attach the Sleeper id when the league is known for this season — from
+  // lib/leagues.ts or from the leagues entered in the admin "Sæson" tab. Stays
+  // undefined when the Sleeper leagues have not been created yet; bekræft then
+  // persists only the name.
   for (const liga of resultat.ligaer) {
-    liga.sleeperId = sleeperIdForLigaNavn(CURRENT_SEASON, liga.ligaNavn)
+    liga.sleeperId = await hentSleeperIdForNavn(sæson, liga.ligaNavn)
   }
 
   return NextResponse.json(resultat)

@@ -14,7 +14,8 @@ import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@/auth'
 import { execute, query, queryOne } from '@/lib/turso'
 import { sendLigaTildeling } from '@/lib/brevo'
-import { CURRENT_SEASON, ligaerForSæson, type LeagueType } from '@/lib/leagues'
+import { type LeagueType } from '@/lib/leagues'
+import { hentAktuelSæson, hentLigaOversigt } from '@/lib/seasonConfig'
 
 const VALID_TYPES: LeagueType[] = ['bestball', 'managed', 'chopped']
 
@@ -36,9 +37,9 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: 'Ikke autoriseret' }, { status: 401 })
   }
 
-  const season = req.nextUrl.searchParams.get('season') || CURRENT_SEASON
+  const season = req.nextUrl.searchParams.get('season') || (await hentAktuelSæson())
 
-  const [kandidater, placeringer] = await Promise.all([
+  const [kandidater, placeringer, sæsonLigaer] = await Promise.all([
     query<KandidatRow>(
       `SELECT p.id AS profile_id, p.display_name, p.username, u.email,
               r.id AS registration_id, r.preferred_types, r.status
@@ -52,6 +53,7 @@ export async function GET(req: NextRequest) {
       'SELECT profile_id, liga_navn FROM league_assignments WHERE season = ?',
       [season]
     ),
+    hentLigaOversigt(season),
   ])
 
   const ligaerPrProfil = new Map<string, string[]>()
@@ -80,7 +82,7 @@ export async function GET(req: NextRequest) {
         a.localeCompare(b, undefined, { numeric: true })
       ),
     })),
-    ligaer: ligaerForSæson(season).map(l => ({
+    ligaer: sæsonLigaer.map(l => ({
       ...l,
       antal: antalPrLiga.get(l.ligaNavn) ?? 0,
     })),
@@ -95,7 +97,7 @@ export async function POST(req: NextRequest) {
 
   const body = await req.json().catch(() => ({}))
   const profileId = typeof body.profileId === 'string' ? body.profileId : ''
-  const season = typeof body.season === 'string' && body.season ? body.season : CURRENT_SEASON
+  const season = typeof body.season === 'string' && body.season ? body.season : await hentAktuelSæson()
   const sendMail = body.sendMail !== false
   const ønskede: string[] = Array.isArray(body.ligaNavne)
     ? body.ligaNavne.filter((n: unknown): n is string => typeof n === 'string')
@@ -116,7 +118,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Deltageren har ingen profil' }, { status: 404 })
   }
 
-  const sæsonLigaer = ligaerForSæson(season)
+  const sæsonLigaer = await hentLigaOversigt(season)
   const valgte = ønskede.map(navn => sæsonLigaer.find(l => l.ligaNavn === navn)).filter(l => !!l)
   if (valgte.length !== ønskede.length) {
     return NextResponse.json(
@@ -219,7 +221,7 @@ export async function DELETE(req: NextRequest) {
   const body = await req.json().catch(() => ({}))
   const profileId = typeof body.profileId === 'string' ? body.profileId : ''
   const ligaNavn = typeof body.ligaNavn === 'string' ? body.ligaNavn : ''
-  const season = typeof body.season === 'string' && body.season ? body.season : CURRENT_SEASON
+  const season = typeof body.season === 'string' && body.season ? body.season : await hentAktuelSæson()
 
   if (!profileId || !ligaNavn) {
     return NextResponse.json({ error: 'Mangler deltager eller liga' }, { status: 400 })

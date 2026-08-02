@@ -17,7 +17,7 @@ export default async function DraftStatistikPage({
 }: {
   searchParams: Promise<{ saeson?: string }>
 }) {
-  const sæsoner = listSæsoner()
+  const sæsoner = await listSæsoner()
   const { saeson } = await searchParams
   const valgtSæson = sæsoner.includes(saeson ?? '') ? saeson! : sæsoner[0]
 

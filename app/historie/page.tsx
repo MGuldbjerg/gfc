@@ -29,7 +29,7 @@ export default async function HistoriePage({
   const { visning: rawVisning, saeson: rawSaeson } = await searchParams
   const visning: Visning = rawVisning === 'alltime' ? 'alltime' : 'sæson'
 
-  const sæsoner = listAfsluttedeSæsoner()
+  const sæsoner = await listAfsluttedeSæsoner()
   const valgtSæson = sæsoner.includes(rawSaeson ?? '') ? rawSaeson! : sæsoner[0]
 
   return (
@@ -298,7 +298,7 @@ function SæsonKolonne({
 // ---------- All-time view ----------------------------------------------------
 
 async function AllTimeView() {
-  const sæsoner = listAfsluttedeSæsoner()
+  const sæsoner = await listAfsluttedeSæsoner()
   if (sæsoner.length === 0) return <IngenData />
 
   const [bestball, managed, chopped, rekorder] = await Promise.all([

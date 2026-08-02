@@ -1,5 +1,5 @@
 import { query } from '@/lib/turso'
-import { CURRENT_SEASON } from '@/lib/leagues'
+import { hentAktuelSæson } from '@/lib/seasonConfig'
 import { AdminTabs } from './AdminTabs'
 
 export const dynamic = 'force-dynamic'
@@ -32,6 +32,7 @@ function parsePreferredTypes(raw: string | null): string[] {
 }
 
 export default async function AdminPage() {
+  const sæson = await hentAktuelSæson()
   const rows = await query<Row>(
     `SELECT r.id, r.season, r.preferred_types, r.assigned_league_name, r.status, r.created_at,
             r.undgaa_amerikansk_vip,
@@ -42,7 +43,7 @@ export default async function AdminPage() {
        LEFT JOIN authjs_user u ON u.id = p.id
       WHERE r.season = ?
       ORDER BY r.created_at DESC`,
-    [CURRENT_SEASON]
+    [sæson]
   )
 
   const tilmeldinger = rows.map(r => ({
@@ -74,11 +75,11 @@ export default async function AdminPage() {
           <span className="dash" />
           <span className="eyebrow">Admin</span>
         </div>
-        <h1>GFC {CURRENT_SEASON}</h1>
+        <h1>GFC {sæson}</h1>
         <p className="sub">Tilmeldingsoversigt og ligafordeling</p>
       </div>
 
-      <AdminTabs tilmeldinger={tilmeldinger} stats={stats} season={CURRENT_SEASON} />
+      <AdminTabs tilmeldinger={tilmeldinger} stats={stats} season={sæson} />
     </>
   )
 }

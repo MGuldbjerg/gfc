@@ -2,30 +2,34 @@
 
 import Link from 'next/link'
 import { useState } from 'react'
-import { tekst, t } from '@/content/tekst'
-import { CURRENT_SEASON } from '@/lib/leagues'
 
 type NavLink = { href: string; label: string }
 
+// Season and label arrive as props: this is a client component, and both are
+// resolved from the database by <Nav> on the server.
 export function NavInner({
   links,
   loggedIn,
+  sæson,
+  tilmeldCta,
 }: {
   links: NavLink[]
   loggedIn: boolean
+  sæson: string
+  tilmeldCta: string
 }) {
   const [open, setOpen] = useState(false)
   const close = () => setOpen(false)
 
   const ctaHref = loggedIn ? '/min-side' : '/log-ind'
-  const ctaLabel = loggedIn ? 'Min side' : t(tekst.nav.tilmeldCta)
+  const ctaLabel = loggedIn ? 'Min side' : tilmeldCta
 
   return (
     <div className="gfc-nav-inner">
       <Link href="/" className="gfc-brand" onClick={close}>
         <span className="gfc-brand-mark" aria-hidden>G</span>
         <span className="gfc-brand-word">GFC</span>
-        <span className="gfc-brand-year">{CURRENT_SEASON}</span>
+        <span className="gfc-brand-year">{sæson}</span>
       </Link>
 
       {/* Desktop links */}
@@ -44,7 +48,7 @@ export function NavInner({
         ) : (
           <>
             <Link href="/log-ind" className="gfc-nav-link">Log ind</Link>
-            <Link href="/log-ind" className="gfc-nav-cta">{t(tekst.nav.tilmeldCta)}</Link>
+            <Link href="/log-ind" className="gfc-nav-cta">{tilmeldCta}</Link>
           </>
         )}
       </div>

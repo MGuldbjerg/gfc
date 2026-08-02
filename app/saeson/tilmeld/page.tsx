@@ -1,5 +1,5 @@
 import Link from 'next/link'
-import { CURRENT_SEASON } from '@/lib/leagues'
+import { hentAktuelSæson } from '@/lib/seasonConfig'
 import { evaluateSignupGate } from '@/lib/seasonSettings'
 import TilmeldForm from './TilmeldForm'
 
@@ -11,7 +11,8 @@ export default async function SaesonTilmeldPage({
   searchParams: Promise<{ invite?: string }>
 }) {
   const { invite } = await searchParams
-  const gate = await evaluateSignupGate(CURRENT_SEASON, invite ?? null)
+  const sæson = await hentAktuelSæson()
+  const gate = await evaluateSignupGate(sæson, invite ?? null)
 
   // Deadline passed and no valid invite → show the closed state instead of the form.
   // (Already-registered users can still adjust their picks via the API; this page
@@ -24,7 +25,7 @@ export default async function SaesonTilmeldPage({
             <span className="dash" />
             <span className="eyebrow">Tilmelding lukket</span>
           </div>
-          <h1 className="form-card-title">GFC {CURRENT_SEASON}</h1>
+          <h1 className="form-card-title">GFC {sæson}</h1>
           <p className="form-card-sub">
             Tilmeldingen for denne sæson er lukket — ligaerne er ved at blive fordelt.
             Vil du gerne være med alligevel, så skriv til Mikkel, så finder vi en plads hvis vi kan.
@@ -39,5 +40,5 @@ export default async function SaesonTilmeldPage({
   }
 
   // Pass the invite through so a valid late-entrant link survives the POST gate.
-  return <TilmeldForm invite={gate.closed ? invite ?? null : null} />
+  return <TilmeldForm invite={gate.closed ? invite ?? null : null} sæson={sæson} />
 }

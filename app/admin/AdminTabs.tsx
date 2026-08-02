@@ -6,8 +6,9 @@ import AdminTilmeldinger, { type Tilmelding } from './AdminTilmeldinger'
 import { AdminAnnoncering } from './AdminAnnoncering'
 import { AdminUgeresume } from './AdminUgeresume'
 import { AdminSaeson } from './AdminSaeson'
+import { AdminIndhold } from './AdminIndhold'
 
-type Tab = 'tilmeldinger' | 'ugeresume' | 'email' | 'saeson'
+type Tab = 'tilmeldinger' | 'ugeresume' | 'email' | 'saeson' | 'indhold'
 
 interface Stats {
   total: number
@@ -54,6 +55,12 @@ export function AdminTabs({
           onClick={() => setAktiv('saeson')}
         >
           Sæson
+        </button>
+        <button
+          className={`season-pill${aktiv === 'indhold' ? ' active' : ''}`}
+          onClick={() => setAktiv('indhold')}
+        >
+          Indhold
         </button>
       </div>
 
@@ -103,6 +110,13 @@ export function AdminTabs({
       {aktiv === 'saeson' && (
         <>
           <AdminSaeson season={season} />
+          <div style={{ paddingBottom: 80 }} />
+        </>
+      )}
+
+      {aktiv === 'indhold' && (
+        <>
+          <AdminIndhold />
           <div style={{ paddingBottom: 80 }} />
         </>
       )}

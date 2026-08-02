@@ -3,7 +3,8 @@
 // in Next.js's per-route revalidate cache.
 
 import { computeLeaderboard, type LeaderboardType } from './leaderboard'
-import { ALL_LEAGUES, CURRENT_SEASON, formatFor, type LeagueType, type SeasonFormat } from './leagues'
+import { formatFor, type LeagueType, type SeasonFormat } from './leagues'
+import { hentAktuelSæson, hentAlleLigaer, hentKendteSæsoner } from './seasonConfig'
 import { fetchMatchups, fetchRosters, fetchUsers } from './sleeper'
 import type { LeaderboardResult } from '@/types/sleeper'
 
@@ -12,15 +13,16 @@ const PLAYOFF_WEEKS = [15, 16, 17] as const
 
 export type Sæson = string
 
-// All seasons we have league data for, newest first.
-export function listSæsoner(): Sæson[] {
-  const all = Array.from(new Set(ALL_LEAGUES.map(l => l.season)))
-  return all.sort().reverse()
+// All seasons we have league data for, newest first. Async because a season
+// can be added from the admin UI as well as in code.
+export async function listSæsoner(): Promise<Sæson[]> {
+  return hentKendteSæsoner()
 }
 
 // Seasons that are complete (excludes the current/upcoming season).
-export function listAfsluttedeSæsoner(): Sæson[] {
-  return listSæsoner().filter(s => s < CURRENT_SEASON)
+export async function listAfsluttedeSæsoner(): Promise<Sæson[]> {
+  const [alle, aktuel] = await Promise.all([listSæsoner(), hentAktuelSæson()])
+  return alle.filter(s => s < aktuel)
 }
 
 export interface SæsonNøgletal {
@@ -34,7 +36,7 @@ export interface SæsonNøgletal {
 // A person who plays multiple rows fills several team slots but counts once
 // toward `deltagere` — that's the honest participant number.
 export async function hentSæsonNøgletal(season: Sæson): Promise<SæsonNøgletal> {
-  const leagues = ALL_LEAGUES.filter(l => l.season === season)
+  const leagues = (await hentAlleLigaer()).filter(l => l.season === season)
   const rosterLists = await Promise.all(leagues.map(l => fetchRosters(l.sleeperId)))
 
   const owners = new Set<string>()
@@ -82,7 +84,7 @@ export interface AllTimeOversigt {
 }
 
 export async function hentAllTimeOversigt(type: LeaderboardType): Promise<AllTimeOversigt> {
-  const sæsoner = listAfsluttedeSæsoner()
+  const sæsoner = await listAfsluttedeSæsoner()
   if (sæsoner.length === 0) return { type, entries: [] }
 
   const resultater = await Promise.all(
@@ -160,7 +162,7 @@ export async function hentUgentligeScorer(
   type: LeagueType,
   weeks: readonly number[] = [...REGULAR_SEASON_WEEKS, ...PLAYOFF_WEEKS],
 ): Promise<UgeScore[]> {
-  const leagues = ALL_LEAGUES.filter(
+  const leagues = (await hentAlleLigaer()).filter(
     l => l.season === season && l.leagueType === type && l.sleeperId
   )
   if (leagues.length === 0) return []
@@ -267,7 +269,7 @@ export async function hentSæsonVinder(
   }
 
   // Pooled playoff: top 3 per Sleeper-league seed; weeks 15→16→17 elimination.
-  const leagues = ALL_LEAGUES.filter(
+  const leagues = (await hentAlleLigaer()).filter(
     l => l.season === season && l.leagueType === type && l.sleeperId
   )
   if (leagues.length === 0) return null
@@ -369,7 +371,7 @@ export async function hentManagedSlutstilling(
   const type: LeagueType = 'managed'
   if (formatFor(season, type) !== 'pooled-playoff') return null
 
-  const leagues = ALL_LEAGUES.filter(
+  const leagues = (await hentAlleLigaer()).filter(
     l => l.season === season && l.leagueType === type && l.sleeperId
   )
   if (leagues.length === 0) return null
@@ -515,7 +517,7 @@ export interface SæsonRekord {
 }
 
 export async function hentBedsteSæsonRekorder(maxPerType = 10): Promise<SæsonRekord[]> {
-  const sæsoner = listAfsluttedeSæsoner()
+  const sæsoner = await listAfsluttedeSæsoner()
   const types: LeaderboardType[] = ['bestball', 'managed', 'chopped']
   const alle: SæsonRekord[] = []
 

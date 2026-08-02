@@ -6,7 +6,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@/auth'
 import { query } from '@/lib/turso'
 import type { Deltager, LeagueType, LigaForslag } from '@/lib/fordeling'
-import { CURRENT_SEASON } from '@/lib/leagues'
+import { hentAktuelSæson } from '@/lib/seasonConfig'
 
 const VALID_TYPES: LeagueType[] = ['bestball', 'managed', 'chopped']
 
@@ -30,7 +30,7 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: 'Ikke autoriseret' }, { status: 401 })
   }
 
-  const season = req.nextUrl.searchParams.get('season') || CURRENT_SEASON
+  const season = req.nextUrl.searchParams.get('season') || (await hentAktuelSæson())
 
   const seasonRows = await query<{ season: string }>(
     'SELECT DISTINCT season FROM league_assignments ORDER BY season DESC'
@@ -79,7 +79,8 @@ export async function GET(req: NextRequest) {
     return td !== 0 ? td : a.ligaNavn.localeCompare(b.ligaNavn, undefined, { numeric: true })
   })
 
-  return NextResponse.json({ season, seasons, ligaer })
+  // aktuelSæson lets the client target the right season without hardcoding it.
+  return NextResponse.json({ season, seasons, ligaer, aktuelSæson: await hentAktuelSæson() })
 }
 
 function parsePreferredTypes(raw: string | null): LeagueType[] {

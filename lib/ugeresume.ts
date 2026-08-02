@@ -10,7 +10,7 @@
 
 import { computeLeaderboard, type LeaderboardType } from './leaderboard'
 import type { LeaderboardEntry, WeeklyHighscore } from '@/types/sleeper'
-import { ALL_LEAGUES } from './leagues'
+import { hentAlleLigaer } from './seasonConfig'
 import { SITE_URL } from './site-url'
 
 const TYPE_ORDER: LeaderboardType[] = ['bestball', 'managed', 'chopped']
@@ -52,8 +52,9 @@ function standingsLinje(e: LeaderboardEntry, i: number, type: LeaderboardType): 
 
 export async function byggUgeresume(season: string, week: number): Promise<UgeresumeResultat> {
   // Kun rækker der faktisk har ligaer denne sæson.
+  const alleLigaer = await hentAlleLigaer()
   const aktiveTyper = TYPE_ORDER.filter(type =>
-    ALL_LEAGUES.some(l => l.season === season && l.leagueType === type && l.sleeperId)
+    alleLigaer.some(l => l.season === season && l.leagueType === type && l.sleeperId)
   )
 
   const perType = await Promise.all(

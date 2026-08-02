@@ -1,6 +1,6 @@
 import type { LeaderboardEntry, LeaderboardResult, WeeklyHighscore } from '@/types/sleeper'
 import { fetchRosters, fetchUsers, fetchMatchups } from './sleeper'
-import { ALL_LEAGUES } from './leagues'
+import { hentAlleLigaer } from './seasonConfig'
 
 export type LeaderboardType = 'bestball' | 'managed' | 'chopped'
 
@@ -13,7 +13,7 @@ export async function computeLeaderboard(
   season: string
 ): Promise<LeaderboardResult> {
   try {
-    const leaguesToFetch = ALL_LEAGUES.filter(
+    const leaguesToFetch = (await hentAlleLigaer()).filter(
       (l) => l.season === season && l.leagueType === type && l.sleeperId
     )
 

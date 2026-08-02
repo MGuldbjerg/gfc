@@ -4,7 +4,7 @@
 import { NextResponse } from 'next/server'
 import { auth } from '@/auth'
 import { query } from '@/lib/turso'
-import { CURRENT_SEASON } from '@/lib/leagues'
+import { hentAktuelSæson } from '@/lib/seasonConfig'
 
 type DeltagerRow = {
   profile_id: string
@@ -24,7 +24,7 @@ export async function GET() {
        JOIN profiles p ON p.id = r.profile_id
       WHERE r.season = ?
       ORDER BY p.display_name`,
-    [CURRENT_SEASON]
+    [await hentAktuelSæson()]
   )
 
   return NextResponse.json({ deltagere: rows })

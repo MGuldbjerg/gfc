@@ -1,6 +1,6 @@
 import Link from 'next/link'
-import { tekst, t } from '@/content/tekst'
-import { CURRENT_SEASON } from '@/lib/leagues'
+import { hentTekst } from '@/lib/indhold'
+import { hentAktuelSæson } from '@/lib/seasonConfig'
 import { queryOne } from '@/lib/turso'
 import { getSeasonSettings } from '@/lib/seasonSettings'
 import { listAfsluttedeSæsoner, hentSæsonNøgletal } from '@/lib/historie'
@@ -11,8 +11,8 @@ export const revalidate = 3600
 const COUNTDOWN_WINDOW_MS = 30 * 24 * 60 * 60 * 1000 // show the countdown within 30 days of the deadline
 
 // Returns the deadline ISO only when it is in the future and within the window.
-async function countdownDeadline(): Promise<string | null> {
-  const settings = await getSeasonSettings(CURRENT_SEASON)
+async function countdownDeadline(sæson: string): Promise<string | null> {
+  const settings = await getSeasonSettings(sæson)
   if (!settings?.signupDeadline) return null
   const ms = new Date(settings.signupDeadline).getTime() - Date.now()
   if (Number.isNaN(ms) || ms <= 0 || ms > COUNTDOWN_WINDOW_MS) return null
@@ -51,6 +51,7 @@ const TRACKS = [
 ]
 
 export default async function HomePage() {
+  const [sæson, tekst] = await Promise.all([hentAktuelSæson(), hentTekst()])
   const stats = await queryOne<StatsRow>(
     `SELECT
        COUNT(*) AS total,
@@ -59,14 +60,14 @@ export default async function HomePage() {
        SUM(CASE WHEN preferred_types LIKE '%chopped%'  THEN 1 ELSE 0 END) AS chopped
      FROM registrations
      WHERE season = ?`,
-    [CURRENT_SEASON]
+    [sæson]
   ) ?? { total: 0, bestball: 0, managed: 0, chopped: 0 }
-  const deadline = await countdownDeadline()
+  const deadline = await countdownDeadline(sæson)
 
   // Hero stats, live from Sleeper for the latest completed season. Falls back to
   // the static text if there is no finished season yet. Cached hourly via
   // `revalidate` above, so this only hits Sleeper once per hour.
-  const afsluttede = listAfsluttedeSæsoner()
+  const afsluttede = await listAfsluttedeSæsoner()
   const senesteSæson = afsluttede[0]
   const nøgletal = senesteSæson ? await hentSæsonNøgletal(senesteSæson) : null
   const hojdepunkter = nøgletal
@@ -85,7 +86,7 @@ export default async function HomePage() {
             <div className="hero-top">
               <div className="kicker-strip">
                 <span className="dash" />
-                <span className="eyebrow">Guldbjergs Fantasy Challenge — {CURRENT_SEASON}</span>
+                <span className="eyebrow">Guldbjergs Fantasy Challenge — {sæson}</span>
               </div>
               <div className="hero-meta">
                 <span className="hero-meta-item">NFL 2026</span>
@@ -104,7 +105,7 @@ export default async function HomePage() {
                 </h1>
                 <div className="hero-cta-group">
                   <Link href="/log-ind" className="btn">
-                    {t(tekst.landing.primaerCta)}
+                    {tekst.landing.primaerCta}
                     <span className="arrow" aria-hidden />
                   </Link>
                   <Link href="/leaderboard" className="btn ghost">
@@ -134,7 +135,7 @@ export default async function HomePage() {
         <div className="container">
           <div className="kicker-strip">
             <span className="dash" />
-            <span className="eyebrow">Sæson {CURRENT_SEASON} · Tilmeldinger</span>
+            <span className="eyebrow">Sæson {sæson} · Tilmeldinger</span>
           </div>
           <div className="counts-grid">
             <div className="count-item count-item--total">
@@ -225,7 +226,7 @@ export default async function HomePage() {
           <div>
             <p>{tekst.landing.finalCtaTekst}</p>
             <Link href="/log-ind" className="btn">
-              {t(tekst.landing.finalCta)}
+              {tekst.landing.finalCta}
               <span className="arrow" aria-hidden />
             </Link>
           </div>
@@ -236,7 +237,7 @@ export default async function HomePage() {
       <footer className="gfc-footer">
         <div className="container">
           <div className="gfc-footer-inner">
-            <span>GFC {CURRENT_SEASON}</span>
+            <span>GFC {sæson}</span>
             <span>Data fra Sleeper API</span>
             <span>Guldbjergs Fantasy Challenge</span>
           </div>

@@ -6,10 +6,11 @@ import { randomUUID } from 'node:crypto'
 import { auth } from '@/auth'
 import { execute, queryOne } from '@/lib/turso'
 import { sendVelkomstMail } from '@/lib/brevo'
-import { CURRENT_SEASON } from '@/lib/leagues'
+import { hentAktuelSæson } from '@/lib/seasonConfig'
 import { evaluateSignupGate } from '@/lib/seasonSettings'
 
 export async function POST(req: NextRequest) {
+  const sæson = await hentAktuelSæson()
   const session = await auth()
   if (!session?.user?.id || !session.user.email) {
     return NextResponse.json({ error: 'Ikke logget ind' }, { status: 401 })
@@ -25,10 +26,10 @@ export async function POST(req: NextRequest) {
   // after the deadline; only brand-new registrations are blocked.
   const existingReg = await queryOne<{ id: string }>(
     'SELECT id FROM registrations WHERE profile_id = ? AND season = ?',
-    [session.user.id, CURRENT_SEASON]
+    [session.user.id, sæson]
   )
   if (!existingReg) {
-    const gate = await evaluateSignupGate(CURRENT_SEASON, typeof invite === 'string' ? invite : null)
+    const gate = await evaluateSignupGate(sæson, typeof invite === 'string' ? invite : null)
     if (!gate.allowed) {
       return NextResponse.json(
         { error: 'Tilmeldingen er lukket. Kontakt Mikkel hvis du gerne vil med.' },
@@ -52,7 +53,7 @@ export async function POST(req: NextRequest) {
        preferred_types = excluded.preferred_types,
        status = 'registered',
        undgaa_amerikansk_vip = excluded.undgaa_amerikansk_vip`,
-    [randomUUID(), session.user.id, CURRENT_SEASON, JSON.stringify(valgteRækker), undgaaAmerikanskVip ? 1 : 0]
+    [randomUUID(), session.user.id, sæson, JSON.stringify(valgteRækker), undgaaAmerikanskVip ? 1 : 0]
   )
 
   // Only send welcome mail on first registration, not on updates.
@@ -60,7 +61,7 @@ export async function POST(req: NextRequest) {
     sendVelkomstMail({
       email: session.user.email,
       displayName: profile.display_name,
-      sæson: CURRENT_SEASON,
+      sæson: sæson,
     }).catch(err => console.error('Brevo-fejl:', err))
   }
 
@@ -68,6 +69,7 @@ export async function POST(req: NextRequest) {
 }
 
 export async function DELETE() {
+  const sæson = await hentAktuelSæson()
   const session = await auth()
   if (!session?.user?.id) {
     return NextResponse.json({ error: 'Ikke logget ind' }, { status: 401 })
@@ -75,7 +77,7 @@ export async function DELETE() {
 
   await execute(
     'DELETE FROM registrations WHERE profile_id = ? AND season = ?',
-    [session.user.id, CURRENT_SEASON]
+    [session.user.id, sæson]
   )
 
   return NextResponse.json({ ok: true })

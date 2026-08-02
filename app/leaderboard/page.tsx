@@ -1,6 +1,6 @@
 import Link from 'next/link'
 import { computeLeaderboard, type LeaderboardType } from '@/lib/leaderboard'
-import { CURRENT_SEASON } from '@/lib/leagues'
+import { hentAktuelSæson } from '@/lib/seasonConfig'
 import { hentManagedSlutstilling } from '@/lib/historie'
 import { queryOne } from '@/lib/turso'
 import type { LeaderboardResult, LeaderboardEntry } from '@/types/sleeper'
@@ -19,11 +19,12 @@ async function getLeaderboard(type: LeaderboardType, season: string): Promise<Le
 }
 
 export default async function LeaderboardPage() {
+  const sæson = await hentAktuelSæson()
   const [bestball, managed, chopped, managedSlut] = await Promise.all([
-    getLeaderboard('bestball', CURRENT_SEASON),
-    getLeaderboard('managed', CURRENT_SEASON),
-    getLeaderboard('chopped', CURRENT_SEASON),
-    hentManagedSlutstilling(CURRENT_SEASON),
+    getLeaderboard('bestball', sæson),
+    getLeaderboard('managed', sæson),
+    getLeaderboard('chopped', sæson),
+    hentManagedSlutstilling(sæson),
   ])
 
   const harChopped = chopped.entries.length > 0
@@ -38,7 +39,7 @@ export default async function LeaderboardPage() {
           <div className="page-head">
             <div className="kicker-strip">
               <span className="dash" />
-              <span className="eyebrow">GFC {CURRENT_SEASON}</span>
+              <span className="eyebrow">GFC {sæson}</span>
             </div>
             <h1>Leaderboard</h1>
           </div>
@@ -57,7 +58,7 @@ export default async function LeaderboardPage() {
             <div>
               <div className="kicker-strip" style={{ marginBottom: 20 }}>
                 <span className="dash" />
-                <span className="eyebrow">Sæson {CURRENT_SEASON}</span>
+                <span className="eyebrow">Sæson {sæson}</span>
               </div>
               <h2 className="section-title" style={{ fontSize: 'clamp(28px, 3vw, 44px)' }}>
                 Sæsonen starter i september
@@ -68,7 +69,7 @@ export default async function LeaderboardPage() {
             </div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 16, alignItems: 'flex-start' }}>
               <Link href="/log-ind" className="btn">
-                Tilmeld dig GFC {CURRENT_SEASON}
+                Tilmeld dig GFC {sæson}
                 <span className="arrow" aria-hidden />
               </Link>
               <Link href="/historie" className="btn ghost">
@@ -87,7 +88,7 @@ export default async function LeaderboardPage() {
         <div className="page-head">
           <div className="kicker-strip">
             <span className="dash" />
-            <span className="eyebrow">GFC {CURRENT_SEASON}</span>
+            <span className="eyebrow">GFC {sæson}</span>
           </div>
           <h1>Leaderboard</h1>
           <p className="sub">Standings på tværs af alle rækker — opdateres automatisk tirsdage.</p>

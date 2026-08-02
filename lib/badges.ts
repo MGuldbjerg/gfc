@@ -95,17 +95,22 @@ export const BADGES: Record<BadgeType, BadgeDef> = {
 
 // Hvilke badges en bruger har optjent baseret på deres sæsondata
 import type { SæsonData } from './profil'
-import { ALL_LEAGUES } from './leagues'
 
+// `alleKendteSæsoner` is passed in rather than read from the league constants,
+// because seasons can also be created from the admin UI (see lib/seasonConfig).
 export function beregnBadges(
   sæsoner: SæsonData[],
   sleeperUserId: string,
-  opts?: { erUgeRekordHolder?: boolean; erSæsonVinder?: boolean }
+  opts?: {
+    erUgeRekordHolder?: boolean
+    erSæsonVinder?: boolean
+    alleKendteSæsoner?: string[]
+  }
 ): BadgeType[] {
   const earned = new Set<BadgeType>()
 
   const sæsonÅr = [...new Set(sæsoner.map(s => s.sæson))]
-  const alleKendteSæsoner = [...new Set(ALL_LEAGUES.map(l => l.season))]
+  const alleKendteSæsoner = opts?.alleKendteSæsoner ?? sæsonÅr
 
   // OG — deltaget i alle sæsoner
   const harAlleSæsoner = alleKendteSæsoner.every(år => sæsonÅr.includes(år))

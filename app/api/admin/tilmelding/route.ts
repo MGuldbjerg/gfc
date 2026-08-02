@@ -12,7 +12,7 @@ import { randomUUID } from 'node:crypto'
 import { auth } from '@/auth'
 import { execute, queryOne } from '@/lib/turso'
 import { getUserByUsername } from '@/lib/sleeper'
-import { CURRENT_SEASON } from '@/lib/leagues'
+import { hentAktuelSæson } from '@/lib/seasonConfig'
 
 const VALID_TYPES = ['bestball', 'managed', 'chopped'] as const
 const VIP_TYPER = ['amerikansk', 'dansk', 'none'] as const
@@ -113,7 +113,7 @@ export async function POST(req: NextRequest) {
   await execute(
     `INSERT INTO registrations (id, profile_id, season, preferred_types, status, undgaa_amerikansk_vip)
      VALUES (?, ?, ?, ?, 'registered', ?)`,
-    [registrationId, profileId, CURRENT_SEASON, JSON.stringify(preferredTypes), undgaaAmerikanskVip ? 1 : 0]
+    [registrationId, profileId, await hentAktuelSæson(), JSON.stringify(preferredTypes), undgaaAmerikanskVip ? 1 : 0]
   )
 
   return NextResponse.json({ ok: true, profileId, registrationId })

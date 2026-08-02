@@ -7,40 +7,74 @@ export interface SeasonSettings {
   season: string
   signupDeadline: string | null // ISO 8601 with offset, or null = open
   inviteCode: string | null
+  // Nøgledatoer — plain 'YYYY-MM-DD'. They are read as "the day X happens" and
+  // rendered as "4. juli", so they carry no clock time or offset.
+  draftStart: string | null
+  fordelingDato: string | null
+  sæsonStart: string | null
 }
 
 interface Row {
   season: string
   signup_deadline: string | null
   invite_code: string | null
+  draft_start: string | null
+  fordeling_dato: string | null
+  saeson_start: string | null
 }
 
 export async function getSeasonSettings(season: string): Promise<SeasonSettings | null> {
   const row = await queryOne<Row>(
-    'SELECT season, signup_deadline, invite_code FROM season_settings WHERE season = ?',
+    `SELECT season, signup_deadline, invite_code, draft_start, fordeling_dato, saeson_start
+       FROM season_settings WHERE season = ?`,
     [season]
   )
   if (!row) return null
-  return { season: row.season, signupDeadline: row.signup_deadline, inviteCode: row.invite_code }
+  return {
+    season: row.season,
+    signupDeadline: row.signup_deadline,
+    inviteCode: row.invite_code,
+    draftStart: row.draft_start,
+    fordelingDato: row.fordeling_dato,
+    sæsonStart: row.saeson_start,
+  }
 }
 
-// Upserts the deadline and/or invite code for a season. Pass `undefined` to
-// leave a field unchanged; pass `null` to clear the deadline (= reopen signups).
+// Upserts settings for a season. Pass `undefined` to leave a field unchanged;
+// pass `null` to clear it (clearing the deadline reopens signups).
 export async function upsertSeasonSettings(
   season: string,
-  fields: { signupDeadline?: string | null; inviteCode?: string }
+  fields: {
+    signupDeadline?: string | null
+    inviteCode?: string
+    draftStart?: string | null
+    fordelingDato?: string | null
+    sæsonStart?: string | null
+  }
 ): Promise<void> {
-  const current = await getSeasonSettings(season)
-  const deadline = fields.signupDeadline === undefined ? current?.signupDeadline ?? null : fields.signupDeadline
-  const invite = fields.inviteCode === undefined ? current?.inviteCode ?? null : fields.inviteCode
+  const nu = await getSeasonSettings(season)
+  const behold = <T,>(ny: T | undefined, gammel: T | null | undefined): T | null =>
+    ny === undefined ? gammel ?? null : ny
+
   await execute(
-    `INSERT INTO season_settings (season, signup_deadline, invite_code, updated_at)
-     VALUES (?, ?, ?, datetime('now'))
+    `INSERT INTO season_settings
+       (season, signup_deadline, invite_code, draft_start, fordeling_dato, saeson_start, updated_at)
+     VALUES (?, ?, ?, ?, ?, ?, datetime('now'))
      ON CONFLICT(season) DO UPDATE SET
        signup_deadline = excluded.signup_deadline,
-       invite_code = excluded.invite_code,
-       updated_at = datetime('now')`,
-    [season, deadline, invite]
+       invite_code     = excluded.invite_code,
+       draft_start     = excluded.draft_start,
+       fordeling_dato  = excluded.fordeling_dato,
+       saeson_start    = excluded.saeson_start,
+       updated_at      = datetime('now')`,
+    [
+      season,
+      behold(fields.signupDeadline, nu?.signupDeadline),
+      behold(fields.inviteCode, nu?.inviteCode),
+      behold(fields.draftStart, nu?.draftStart),
+      behold(fields.fordelingDato, nu?.fordelingDato),
+      behold(fields.sæsonStart, nu?.sæsonStart),
+    ]
   )
 }
 

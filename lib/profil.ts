@@ -6,7 +6,7 @@ import {
   getMatchups,
   getDrafts,
 } from './sleeper'
-import { ALL_LEAGUES } from './leagues'
+import { hentAlleLigaer } from './seasonConfig'
 import type { GFCLeague } from '@/types/sleeper'
 
 export interface UgeScore {
@@ -52,7 +52,7 @@ export async function hentProfilData(sleeperUsername: string): Promise<ProfilDat
 
   // Gennemgå alle kendte GFC-ligaer og find dem brugeren deltog i
   await Promise.all(
-    ALL_LEAGUES.map(async (liga) => {
+    (await hentAlleLigaer()).map(async (liga) => {
       const sæsonData = await hentLigaData(liga, sleeperUser.user_id)
       if (sæsonData) sæsoner.push(sæsonData)
     })
