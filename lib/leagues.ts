@@ -67,6 +67,9 @@ const LEAGUES_2026 = {
   BB3: '1388642591716708352',
   BB4: '1388644086415630336',
   BB5: '1388644771966230528',
+  // Oprettet efter den oprindelige fordeling for at få plads til sene
+  // tilmeldinger og folk, der ønskede bestball uden at få en plads.
+  BB6: '1390729818009530368',
   C1: '1388648202772701184',
   C2: '1388649123527282688',
   C3: '1388650186703663104',
@@ -151,6 +154,7 @@ export const ALL_LEAGUES: League[] = [
   { season: '2026', leagueType: 'bestball', name: 'Bestball 3', sleeperId: LEAGUES_2026.BB3 },
   { season: '2026', leagueType: 'bestball', name: 'Bestball 4', sleeperId: LEAGUES_2026.BB4 },
   { season: '2026', leagueType: 'bestball', name: 'Bestball 5', sleeperId: LEAGUES_2026.BB5 },
+  { season: '2026', leagueType: 'bestball', name: 'Bestball 6', sleeperId: LEAGUES_2026.BB6 },
   { season: '2026', leagueType: 'chopped', name: 'Chopped 1', sleeperId: LEAGUES_2026.C1 },
   { season: '2026', leagueType: 'chopped', name: 'Chopped 2', sleeperId: LEAGUES_2026.C2 },
   { season: '2026', leagueType: 'chopped', name: 'Chopped 3', sleeperId: LEAGUES_2026.C3 },
