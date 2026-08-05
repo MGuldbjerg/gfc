@@ -16,6 +16,7 @@ import { execute, query, queryOne } from '@/lib/turso'
 import { sendLigaTildeling } from '@/lib/brevo'
 import { type LeagueType } from '@/lib/leagues'
 import { hentAktuelSæson, hentLigaOversigt } from '@/lib/seasonConfig'
+import { getSeasonSettings, erSenTilmelding } from '@/lib/seasonSettings'
 
 const VALID_TYPES: LeagueType[] = ['bestball', 'managed', 'chopped']
 
@@ -27,6 +28,8 @@ type KandidatRow = {
   registration_id: string | null
   preferred_types: string | null
   status: string | null
+  reg_created: string | null
+  profil_oprettet: string | null
 }
 
 // Everyone with a profile, whether or not they hold a registration this season,
@@ -39,10 +42,11 @@ export async function GET(req: NextRequest) {
 
   const season = req.nextUrl.searchParams.get('season') || (await hentAktuelSæson())
 
-  const [kandidater, placeringer, sæsonLigaer] = await Promise.all([
+  const [kandidater, placeringer, sæsonLigaer, settings] = await Promise.all([
     query<KandidatRow>(
       `SELECT p.id AS profile_id, p.display_name, p.username, u.email,
-              r.id AS registration_id, r.preferred_types, r.status
+              r.id AS registration_id, r.preferred_types, r.status,
+              r.created_at AS reg_created, p.created_at AS profil_oprettet
          FROM profiles p
          LEFT JOIN authjs_user u ON u.id = p.id
          LEFT JOIN registrations r ON r.profile_id = p.id AND r.season = ?
@@ -54,6 +58,7 @@ export async function GET(req: NextRequest) {
       [season]
     ),
     hentLigaOversigt(season),
+    getSeasonSettings(season),
   ])
 
   const ligaerPrProfil = new Map<string, string[]>()
@@ -78,6 +83,15 @@ export async function GET(req: NextRequest) {
       harTilmelding: !!k.registration_id,
       status: k.status,
       preferredTypes: parseTypes(k.preferred_types),
+      // Late entrants must never take a seat ahead of someone who signed up in
+      // time, so the UI needs to be able to tell them apart at a glance.
+      sen: erSenTilmelding(k.reg_created, settings?.signupDeadline ?? null),
+      tilmeldtDato: k.reg_created,
+      // Someone whose profile appeared after the deadline but who never got a
+      // registration hit a closed /saeson/tilmeld — they wanted in and could
+      // not. Without this the admin has no way of seeing that they exist.
+      profilEfterFrist: erSenTilmelding(k.profil_oprettet, settings?.signupDeadline ?? null),
+      profilOprettet: k.profil_oprettet,
       ligaer: (ligaerPrProfil.get(k.profile_id) ?? []).sort((a, b) =>
         a.localeCompare(b, undefined, { numeric: true })
       ),
@@ -86,6 +100,7 @@ export async function GET(req: NextRequest) {
       ...l,
       antal: antalPrLiga.get(l.ligaNavn) ?? 0,
     })),
+    deadline: settings?.signupDeadline ?? null,
   })
 }
 
@@ -127,6 +142,29 @@ export async function POST(req: NextRequest) {
     )
   }
 
+  const { tilføjet, oprettedeTilmelding, mailSendt } = await tilføjTilLigaer(
+    profileId, profil.display_name, season, valgte, sendMail
+  )
+
+  return NextResponse.json({
+    ok: true,
+    tilføjet,
+    oprettedeTilmelding,
+    mailSendt,
+  })
+}
+
+type Liga = { ligaNavn: string; type: LeagueType; sleeperId?: string | null }
+
+// Places one person in one or more leagues, creating the season registration if
+// it is missing. Shared by POST (add) and PATCH (swap).
+async function tilføjTilLigaer(
+  profileId: string,
+  displayName: string,
+  season: string,
+  valgte: Liga[],
+  sendMail: boolean
+): Promise<{ tilføjet: string[]; oprettedeTilmelding: boolean; mailSendt: number }> {
   // A late entrant has no registration for the season — create one so the
   // person shows up in Tilmeldinger, on /min-side and in every later fordeling.
   let reg = await queryOne<{ id: string; preferred_types: string | null }>(
@@ -187,7 +225,7 @@ export async function POST(req: NextRequest) {
         try {
           await sendLigaTildeling({
             email: bruger.email,
-            displayName: profil.display_name,
+            displayName,
             ligaNavn: liga.ligaNavn,
             sleeperLigaUrl: liga.sleeperId
               ? `https://sleeper.com/leagues/${liga.sleeperId}`
@@ -196,37 +234,22 @@ export async function POST(req: NextRequest) {
           })
           mailSendt++
         } catch (err) {
-          console.error(`sendLigaTildeling failed for ${profil.display_name}:`, err)
+          console.error(`sendLigaTildeling failed for ${displayName}:`, err)
         }
       }
     }
   }
 
-  return NextResponse.json({
-    ok: true,
-    tilføjet,
-    oprettedeTilmelding,
-    mailSendt,
-  })
+  return { tilføjet, oprettedeTilmelding, mailSendt }
 }
 
-// Removes a single placement. Frees a seat when a league is full, and undoes a
-// mistake without touching the rest of the season.
-export async function DELETE(req: NextRequest) {
-  const session = await auth()
-  if (!session?.user?.isAdmin) {
-    return NextResponse.json({ error: 'Ikke autoriseret' }, { status: 401 })
-  }
-
-  const body = await req.json().catch(() => ({}))
-  const profileId = typeof body.profileId === 'string' ? body.profileId : ''
-  const ligaNavn = typeof body.ligaNavn === 'string' ? body.ligaNavn : ''
-  const season = typeof body.season === 'string' && body.season ? body.season : await hentAktuelSæson()
-
-  if (!profileId || !ligaNavn) {
-    return NextResponse.json({ error: 'Mangler deltager eller liga' }, { status: 400 })
-  }
-
+// Removes one placement and puts the registration's summary fields back in
+// step. Returns the leagues the person still holds.
+async function fjernPlacering(
+  profileId: string,
+  season: string,
+  ligaNavn: string
+): Promise<string[]> {
   await execute(
     'DELETE FROM league_assignments WHERE profile_id = ? AND season = ? AND liga_navn = ?',
     [profileId, season, ligaNavn]
@@ -255,7 +278,87 @@ export async function DELETE(req: NextRequest) {
     )
   }
 
-  return NextResponse.json({ ok: true, tilbage: rest.map(r => r.liga_navn) })
+  return rest.map(r => r.liga_navn)
+}
+
+// Removes a single placement. Frees a seat when a league is full, and undoes a
+// mistake without touching the rest of the season.
+export async function DELETE(req: NextRequest) {
+  const session = await auth()
+  if (!session?.user?.isAdmin) {
+    return NextResponse.json({ error: 'Ikke autoriseret' }, { status: 401 })
+  }
+
+  const body = await req.json().catch(() => ({}))
+  const profileId = typeof body.profileId === 'string' ? body.profileId : ''
+  const ligaNavn = typeof body.ligaNavn === 'string' ? body.ligaNavn : ''
+  const season = typeof body.season === 'string' && body.season ? body.season : await hentAktuelSæson()
+
+  if (!profileId || !ligaNavn) {
+    return NextResponse.json({ error: 'Mangler deltager eller liga' }, { status: 400 })
+  }
+
+  const tilbage = await fjernPlacering(profileId, season, ligaNavn)
+  return NextResponse.json({ ok: true, tilbage })
+}
+
+// Swap: one person out of a league, another straight into the freed seat.
+// Doing it as one call rather than a remove followed by an add means the seat
+// is never briefly free — and it matches what actually happened in Sleeper,
+// which is a single event, not two.
+export async function PATCH(req: NextRequest) {
+  const session = await auth()
+  if (!session?.user?.isAdmin) {
+    return NextResponse.json({ error: 'Ikke autoriseret' }, { status: 401 })
+  }
+
+  const body = await req.json().catch(() => ({}))
+  const udProfileId = typeof body.udProfileId === 'string' ? body.udProfileId : ''
+  const indProfileId = typeof body.indProfileId === 'string' ? body.indProfileId : ''
+  const ligaNavn = typeof body.ligaNavn === 'string' ? body.ligaNavn : ''
+  const season = typeof body.season === 'string' && body.season ? body.season : await hentAktuelSæson()
+  const sendMail = body.sendMail !== false
+
+  if (!udProfileId || !indProfileId || !ligaNavn) {
+    return NextResponse.json({ error: 'Vælg både hvem der ryger ud, hvem der ind, og hvilken liga' }, { status: 400 })
+  }
+  if (udProfileId === indProfileId) {
+    return NextResponse.json({ error: 'Samme deltager både ud og ind' }, { status: 400 })
+  }
+
+  const liga = (await hentLigaOversigt(season)).find(l => l.ligaNavn === ligaNavn)
+  if (!liga) {
+    return NextResponse.json({ error: `Ukendt liga ${ligaNavn} for ${season}` }, { status: 400 })
+  }
+
+  const iLigaen = await queryOne<{ id: string }>(
+    'SELECT id FROM league_assignments WHERE profile_id = ? AND season = ? AND liga_navn = ?',
+    [udProfileId, season, ligaNavn]
+  )
+  if (!iLigaen) {
+    return NextResponse.json({ error: `Deltageren er ikke i ${ligaNavn}` }, { status: 400 })
+  }
+
+  const alleredeI = await queryOne<{ id: string }>(
+    'SELECT id FROM league_assignments WHERE profile_id = ? AND season = ? AND liga_navn = ?',
+    [indProfileId, season, ligaNavn]
+  )
+  if (alleredeI) {
+    return NextResponse.json({ error: `Den nye deltager er allerede i ${ligaNavn}` }, { status: 400 })
+  }
+
+  const indProfil = await queryOne<{ id: string; display_name: string }>(
+    'SELECT id, display_name FROM profiles WHERE id = ?',
+    [indProfileId]
+  )
+  if (!indProfil) {
+    return NextResponse.json({ error: 'Den nye deltager har ingen profil' }, { status: 404 })
+  }
+
+  await fjernPlacering(udProfileId, season, ligaNavn)
+  const { mailSendt } = await tilføjTilLigaer(indProfileId, indProfil.display_name, season, [liga], sendMail)
+
+  return NextResponse.json({ ok: true, ligaNavn, mailSendt })
 }
 
 function parseTypes(raw: string | null): LeagueType[] {

@@ -10,6 +10,10 @@ export interface Deltager {
   // preferences sort first (less flexibility → higher priority), tiebroken by
   // their personal rank of that type (lower index = higher priority).
   preferredTypes: LeagueType[]
+  // Signed up after the season's deadline. Late entrants are never placed ahead
+  // of someone who signed up in time: they sort behind the whole on-time pool,
+  // so they only get a seat that would otherwise stand empty.
+  senTilmelding?: boolean
   erAmerikanskVip?: boolean       // admin-set: this person is a US industry guest
   erDanskVip?: boolean            // admin-set: this person is a Danish VIP guest (no avoidance — the opt-out is US-only)
   undgaaAmerikanskVip?: boolean   // user preference: don't place in same league as US VIP
@@ -168,9 +172,12 @@ export function beregnFordeling(
       d => d.preferredTypes.includes(type) && !vipPinnedType.has(d.profileId)
     )
 
-    // Sort so that people with fewer total preferences come first.
-    // Within the same flexibility tier, the one who ranked this type higher wins.
+    // On-time signups first, as a whole block. Only then the usual ordering:
+    // fewer total preferences first, and within a flexibility tier the one who
+    // ranked this type higher.
     candidates.sort((a, b) => {
+      const bySen = Number(a.senTilmelding ?? false) - Number(b.senTilmelding ?? false)
+      if (bySen !== 0) return bySen
       const byFlexibility = a.preferredTypes.length - b.preferredTypes.length
       if (byFlexibility !== 0) return byFlexibility
       return a.preferredTypes.indexOf(type) - b.preferredTypes.indexOf(type)
@@ -220,6 +227,7 @@ function shuffleWithinTiers(candidates: Deltager[], type: LeagueType): Deltager[
     let tierEnd = tierStart + 1
     while (
       tierEnd < candidates.length &&
+      (candidates[tierEnd].senTilmelding ?? false) === (a.senTilmelding ?? false) &&
       candidates[tierEnd].preferredTypes.length === a.preferredTypes.length &&
       candidates[tierEnd].preferredTypes.indexOf(type) === a.preferredTypes.indexOf(type)
     ) {

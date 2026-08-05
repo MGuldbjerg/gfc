@@ -579,6 +579,52 @@ a { color: inherit; text-decoration: none; }
 .manuel-liga-antal { margin-left: auto; font-size: 11px; color: var(--muted); }
 .manuel-liga-antal.fuld { color: var(--accent); }
 
+/* ── Ventepulje + byt (admin) ───────────────────────────────────────────── */
+
+.ventepulje {
+  border: 1px solid var(--line);
+  border-radius: var(--r-sm);
+  padding: 14px 16px;
+  margin-bottom: 18px;
+  background: var(--bg-2);
+}
+.ventepulje-head { display: flex; align-items: baseline; gap: 12px; flex-wrap: wrap; margin-bottom: 12px; }
+.ventepulje-gruppe + .ventepulje-gruppe { margin-top: 14px; padding-top: 14px; border-top: 1px solid var(--line-2); }
+.ventepulje-gruppe-head { display: flex; align-items: baseline; gap: 8px; flex-wrap: wrap; margin-bottom: 8px; }
+.ventepulje-gruppe-head .n {
+  font-family: var(--font-mono); font-size: 15px; font-weight: 600;
+  min-width: 22px; text-align: right;
+}
+.ventepulje-gruppe-head .navn { font-size: 13px; font-weight: 600; color: var(--ink); }
+.ventepulje-gruppe-head .forklaring { flex: 1 1 240px; }
+.ventepulje-gruppe-head.ok .n { color: var(--pos); }
+.ventepulje-gruppe-head.warn .n { color: #b8860b; }
+.ventepulje-gruppe-head.bad .n { color: var(--accent); }
+
+.ventepulje-liste { display: flex; flex-wrap: wrap; gap: 8px; }
+.ventepulje-person {
+  display: inline-flex; align-items: center; gap: 8px;
+  padding: 6px 10px; font-size: 13px; text-align: left;
+  background: var(--panel); border: 1px solid var(--line);
+  border-radius: var(--r-sm); cursor: pointer;
+}
+.ventepulje-person:hover { border-color: color-mix(in oklch, var(--ink) 25%, var(--line)); }
+.ventepulje-person .navn { color: var(--ink); }
+.ventepulje-person .uname { font-family: var(--font-mono); font-size: 11px; color: var(--muted); }
+
+.byt-boks {
+  border: 1px solid var(--line);
+  border-radius: var(--r-sm);
+  padding: 14px 16px;
+  margin-bottom: 16px;
+  background: var(--panel);
+}
+
+.tjek-sen {
+  font-family: var(--font-mono); font-size: 10px; letter-spacing: .04em;
+  text-transform: uppercase; color: #b8860b; margin-left: 6px;
+}
+
 /* ── Draftstatus (live slow drafts) ─────────────────────────────────────── */
 
 .draft-status-grid {
@@ -972,7 +1018,10 @@ a { color: inherit; text-decoration: none; }
   box-shadow: 0 0 0 3px color-mix(in oklch, var(--ink) 7%, transparent);
 }
 .gfc-input::placeholder { color: var(--muted-2); }
-.gfc-input.mono { font-family: var(--font-mono); text-transform: uppercase; }
+.gfc-input.mono { font-family: var(--font-mono); }
+/* Kun til felter hvor værdien reelt ER versaler (liganavne: BB1, M2). Sleeper-
+   brugernavne må ikke versaliseres — de vises da forkert i forhold til Sleeper. */
+.gfc-input.versal { text-transform: uppercase; }
 
 select.gfc-input { cursor: pointer; }
 

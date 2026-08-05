@@ -5,6 +5,7 @@ import { auth } from '@/auth'
 import { query } from '@/lib/turso'
 import { beregnFordeling, type Deltager, type LeagueType, type Pin } from '@/lib/fordeling'
 import { hentAktuelSæson, hentSleeperIdForNavn } from '@/lib/seasonConfig'
+import { getSeasonSettings, erSenTilmelding } from '@/lib/seasonSettings'
 
 const VALID_TYPES: LeagueType[] = ['bestball', 'managed', 'chopped']
 
@@ -17,6 +18,7 @@ type TilmeldingRow = {
   er_amerikansk_vip: number
   er_dansk_vip: number
   undgaa_amerikansk_vip: number
+  created_at: string
 }
 
 export async function POST(req: NextRequest) {
@@ -29,10 +31,13 @@ export async function POST(req: NextRequest) {
 
   const sæson = await hentAktuelSæson()
 
+  const settings = await getSeasonSettings(sæson)
+
   const tilmeldinger = await query<TilmeldingRow>(
     `SELECT r.id AS registration_id,
             r.preferred_types,
             r.undgaa_amerikansk_vip,
+            r.created_at,
             p.id AS profile_id,
             p.display_name,
             p.username,
@@ -57,6 +62,7 @@ export async function POST(req: NextRequest) {
     erAmerikanskVip: Boolean(t.er_amerikansk_vip),
     erDanskVip: Boolean(t.er_dansk_vip),
     undgaaAmerikanskVip: Boolean(t.undgaa_amerikansk_vip),
+    senTilmelding: erSenTilmelding(t.created_at, settings?.signupDeadline ?? null),
   }))
 
   const validPins: Pin[] = Array.isArray(pins)

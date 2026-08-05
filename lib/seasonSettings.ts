@@ -78,6 +78,20 @@ export async function upsertSeasonSettings(
   )
 }
 
+// True when the signup happened after the season's deadline.
+//
+// `registrations.created_at` is written by SQLite's datetime('now'), i.e. UTC
+// as 'YYYY-MM-DD HH:MM:SS' with no zone marker — it has to be read as UTC, or
+// a signup would appear two hours earlier than it was and could be misjudged
+// as on time. No deadline set → nobody is late.
+export function erSenTilmelding(createdAt: string | null, deadlineIso: string | null): boolean {
+  if (!createdAt || !deadlineIso) return false
+  const oprettet = new Date(`${createdAt.trim().replace(' ', 'T')}Z`)
+  const frist = new Date(deadlineIso)
+  if (Number.isNaN(oprettet.getTime()) || Number.isNaN(frist.getTime())) return false
+  return oprettet.getTime() > frist.getTime()
+}
+
 // True when a deadline is set and now is past it. No deadline → never passed.
 export function deadlinePassed(deadlineIso: string | null, now: Date = new Date()): boolean {
   if (!deadlineIso) return false

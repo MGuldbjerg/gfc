@@ -25,6 +25,7 @@ type TjekRow = {
   sleeperUsername: string
   wanted: LeagueType[]
   got: LeagueType[]
+  sen: boolean
 }
 
 // Ønsket-vs-tildelt sanity check: catches the case where two equally flexible
@@ -49,6 +50,7 @@ function FordelingsTjek({ resultat }: { resultat: FordelingsResultat }) {
             sleeperUsername: d.sleeperUsername,
             wanted: d.preferredTypes,
             got: [],
+            sen: d.senTilmelding ?? false,
           }
           map.set(d.profileId, row)
         }
@@ -65,6 +67,7 @@ function FordelingsTjek({ resultat }: { resultat: FordelingsResultat }) {
           sleeperUsername: d.sleeperUsername,
           wanted: d.preferredTypes,
           got: [],
+          sen: d.senTilmelding ?? false,
         })
       }
     }
@@ -78,6 +81,7 @@ function FordelingsTjek({ resultat }: { resultat: FordelingsResultat }) {
   const delvist = rows.filter(r => r.got.length > 0 && r.got.length < r.wanted.length).length
   const ingen = rows.filter(r => r.got.length === 0).length
 
+  const sene = rows.filter(r => r.sen).length
   const tiers = [...new Set(rows.map(r => r.wanted.length))].sort((a, b) => b - a)
 
   return (
@@ -94,7 +98,16 @@ function FordelingsTjek({ resultat }: { resultat: FordelingsResultat }) {
         <div className="tjek-stat ok"><div className="n">{fuldt}</div><div className="l">fik alt de ønskede</div></div>
         <div className="tjek-stat warn"><div className="n">{delvist}</div><div className="l">fik nogle, ikke alle</div></div>
         <div className="tjek-stat bad"><div className="n">{ingen}</div><div className="l">fik ingen liga</div></div>
+        {sene > 0 && (
+          <div className="tjek-stat warn"><div className="n">{sene}</div><div className="l">sene tilmeldinger</div></div>
+        )}
       </div>
+      {sene > 0 && (
+        <p className="eyebrow" style={{ marginBottom: 12 }}>
+          Sene tilmeldinger er markeret <span className="tjek-sen">sen</span> og fordeles altid efter
+          alle, der nåede fristen — de får kun en plads, der ellers ville stå tom.
+        </p>
+      )}
 
       <div className="tjek-toolbar">
         <label className="tjek-toggle">
@@ -140,6 +153,7 @@ function FordelingsTjek({ resultat }: { resultat: FordelingsResultat }) {
                     <tr key={r.profileId} className={fuldtTilfreds ? 'tjek-satisfied' : undefined}>
                       <td>
                         <span className="tjek-name">{r.displayName}</span>
+                        {r.sen && <span className="tjek-sen" title="Tilmeldt efter fristen — placeres sidst">sen</span>}
                         <span className="tjek-uname">@{r.sleeperUsername}</span>
                       </td>
                       <td>
@@ -240,26 +254,153 @@ type ManuelDeltager = {
   status: string | null
   preferredTypes: LeagueType[]
   ligaer: string[]
+  sen: boolean
+  tilmeldtDato: string | null
+  profilEfterFrist: boolean
+  profilOprettet: string | null
 }
 
 type ManuelLiga = { ligaNavn: string; type: LeagueType; sleeperId: string; antal: number }
 
+type ManuelData = {
+  deltagere: ManuelDeltager[]
+  ligaer: ManuelLiga[]
+  deadline: string | null
+}
+
+// Someone who wants a row but holds no league of that type — i.e. first in line
+// when a seat frees up. Split by whether they signed up before the deadline,
+// because an on-time signup always goes ahead of a late one.
+type Ventende = { deltager: ManuelDeltager; typer: LeagueType[] }
+
+function beregnVentepulje(data: ManuelData): {
+  tilTiden: Ventende[]
+  sene: Ventende[]
+  naaedeIkke: Ventende[]
+} {
+  const typeForLiga = new Map(data.ligaer.map(l => [l.ligaNavn, l.type]))
+  const tilTiden: Ventende[] = []
+  const sene: Ventende[] = []
+  const naaedeIkke: Ventende[] = []
+
+  for (const d of data.deltagere) {
+    // Profile created after the deadline but no registration: they came to sign
+    // up and found /saeson/tilmeld closed. We do not know which rows they
+    // wanted, only that they wanted in. Profiles from earlier seasons that are
+    // simply dormant are deliberately not listed — they never showed up.
+    if (!d.harTilmelding) {
+      if (d.profilEfterFrist) naaedeIkke.push({ deltager: d, typer: [] })
+      continue
+    }
+    if (d.preferredTypes.length === 0) continue
+    const har = new Set(d.ligaer.map(navn => typeForLiga.get(navn)).filter(Boolean) as LeagueType[])
+    const mangler = d.preferredTypes.filter(t => !har.has(t))
+    if (mangler.length === 0) continue
+    ;(d.sen ? sene : tilTiden).push({ deltager: d, typer: mangler })
+  }
+
+  // Oldest signup first inside each group — first come, first served.
+  const sorter = (a: Ventende, b: Ventende) =>
+    (a.deltager.tilmeldtDato ?? a.deltager.profilOprettet ?? '')
+      .localeCompare(b.deltager.tilmeldtDato ?? b.deltager.profilOprettet ?? '')
+  return {
+    tilTiden: tilTiden.sort(sorter),
+    sene: sene.sort(sorter),
+    naaedeIkke: naaedeIkke.sort(sorter),
+  }
+}
+
 // Nominal league sizes — only used to show "12/12" next to a league so the
 // admin can see where there is room before placing someone.
 const STANDARD_STØRRELSE: Record<LeagueType, number> = { bestball: 12, managed: 12, chopped: 18 }
+
+// The queue for a freed seat. Three groups, deliberately in this order: an
+// on-time signup is never passed over for a late one, and someone who only got
+// as far as a profile is last because we do not even know which rows they want.
+function Ventepulje({
+  pulje,
+  onVælg,
+}: {
+  pulje: { tilTiden: Ventende[]; sene: Ventende[]; naaedeIkke: Ventende[] }
+  onVælg: (profileId: string) => void
+}) {
+  const grupper = [
+    {
+      nøgle: 'tid',
+      navn: 'Tilmeldt til tiden',
+      klasse: 'ok',
+      rækker: pulje.tilTiden,
+      forklaring: 'Nåede fristen, men mangler stadig en række de ønskede. Tag altid herfra først.',
+    },
+    {
+      nøgle: 'sen',
+      navn: 'Sen tilmelding',
+      klasse: 'warn',
+      rækker: pulje.sene,
+      forklaring: 'Tilmeldt efter fristen. Må først få en plads, når ingen ovenfor mangler.',
+    },
+    {
+      nøgle: 'ingen',
+      navn: 'Nåede ikke at tilmelde sig',
+      klasse: 'bad',
+      rækker: pulje.naaedeIkke,
+      forklaring: 'Oprettede profil efter fristen og fandt tilmeldingen lukket. Vi kender ikke deres ønskede rækker — spørg dem.',
+    },
+  ].filter(g => g.rækker.length > 0)
+
+  if (grupper.length === 0) return null
+
+  return (
+    <div className="ventepulje">
+      <div className="ventepulje-head">
+        <span className="lb-col-name" style={{ fontSize: 15 }}>Ventepulje</span>
+        <span className="eyebrow">Hvem står for tur, hvis en plads bliver ledig</span>
+      </div>
+
+      {grupper.map(g => (
+        <div key={g.nøgle} className="ventepulje-gruppe">
+          <div className={`ventepulje-gruppe-head ${g.klasse}`}>
+            <span className="n">{g.rækker.length}</span>
+            <span className="navn">{g.navn}</span>
+            <span className="eyebrow forklaring">{g.forklaring}</span>
+          </div>
+          <div className="ventepulje-liste">
+            {g.rækker.map(({ deltager, typer }) => (
+              <button
+                key={deltager.profileId}
+                className="ventepulje-person"
+                onClick={() => onVælg(deltager.profileId)}
+                title="Vælg denne deltager nedenfor"
+              >
+                <span className="navn">{deltager.displayName}</span>
+                <span className="uname">@{deltager.sleeperUsername}</span>
+                {typer.length > 0
+                  ? typer.map(t => <span key={t} className={`type-badge ${t}`}>{t}</span>)
+                  : <span className="eyebrow">række ukendt</span>}
+              </button>
+            ))}
+          </div>
+        </div>
+      ))}
+    </div>
+  )
+}
 
 // Hand-places a participant in one or more leagues. Exists for late entrants:
 // someone who signed up after the deadline never picked a row, so they hold no
 // registration and the automatic fordeling cannot see them at all.
 function ManuelTildeling({ season, onÆndret }: { season: string; onÆndret: () => void }) {
   const [åben, setÅben] = useState(false)
-  const [data, setData] = useState<{ deltagere: ManuelDeltager[]; ligaer: ManuelLiga[] } | null>(null)
+  const [data, setData] = useState<ManuelData | null>(null)
   const [valgtProfil, setValgtProfil] = useState('')
   const [valgteLigaer, setValgteLigaer] = useState<string[]>([])
   const [sendMail, setSendMail] = useState(true)
   const [gemmer, setGemmer] = useState(false)
   const [besked, setBesked] = useState('')
   const [fejl, setFejl] = useState('')
+  // Swap: who leaves which league, and who takes the freed seat.
+  const [bytUd, setBytUd] = useState<{ profileId: string; ligaNavn: string } | null>(null)
+  const [bytInd, setBytInd] = useState('')
 
   const hentData = useCallback(async () => {
     try {
@@ -279,6 +420,44 @@ function ManuelTildeling({ season, onÆndret }: { season: string; onÆndret: () 
 
   function toggleLiga(navn: string) {
     setValgteLigaer(prev => (prev.includes(navn) ? prev.filter(n => n !== navn) : [...prev, navn]))
+  }
+
+  async function byt() {
+    if (!bytUd || !bytInd) return
+    setGemmer(true)
+    setFejl('')
+    setBesked('')
+    try {
+      const res = await fetch('/api/admin/fordel/manuel', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          udProfileId: bytUd.profileId,
+          indProfileId: bytInd,
+          ligaNavn: bytUd.ligaNavn,
+          season,
+          sendMail,
+        }),
+      })
+      const svar = await res.json()
+      if (!res.ok) throw new Error(svar.error ?? 'Ukendt fejl')
+
+      const ud = data?.deltagere.find(d => d.profileId === bytUd.profileId)
+      const ind = data?.deltagere.find(d => d.profileId === bytInd)
+      setBesked(
+        `${ud?.displayName ?? 'Deltager'} er ude af ${bytUd.ligaNavn}, ` +
+        `${ind?.displayName ?? 'ny deltager'} er ind.` +
+        (svar.mailSendt > 0 ? ' Ligabesked sendt.' : '')
+      )
+      setBytUd(null)
+      setBytInd('')
+      await hentData()
+      onÆndret()
+    } catch (e) {
+      setFejl(e instanceof Error ? e.message : 'Noget gik galt')
+    } finally {
+      setGemmer(false)
+    }
   }
 
   async function tildel() {
@@ -335,8 +514,7 @@ function ManuelTildeling({ season, onÆndret }: { season: string; onÆndret: () 
     }
   }
 
-  const udenTilmelding = data?.deltagere.filter(d => !d.harTilmelding) ?? []
-  const utildelte = data?.deltagere.filter(d => d.harTilmelding && d.ligaer.length === 0) ?? []
+  const pulje = data ? beregnVentepulje(data) : null
 
   return (
     <div className="lb-col" style={{ marginBottom: 16 }}>
@@ -353,16 +531,7 @@ function ManuelTildeling({ season, onÆndret }: { season: string; onÆndret: () 
 
       {åben && data && (
         <div style={{ marginTop: 16 }}>
-          {(udenTilmelding.length > 0 || utildelte.length > 0) && (
-            <p className="eyebrow" style={{ marginBottom: 12 }}>
-              {udenTilmelding.length > 0 && (
-                <>{udenTilmelding.length} med profil uden tilmelding til {season}
-                  {' '}({udenTilmelding.slice(0, 4).map(d => d.displayName).join(', ')}
-                  {udenTilmelding.length > 4 && ' m.fl.'}). </>
-              )}
-              {utildelte.length > 0 && <>{utildelte.length} tilmeldt uden liga.</>}
-            </p>
-          )}
+          {pulje && <Ventepulje pulje={pulje} onVælg={p => { setValgtProfil(p); setValgteLigaer([]); setBesked('') }} />}
 
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 16, alignItems: 'flex-end' }}>
             <label style={{ display: 'flex', flexDirection: 'column', gap: 5, flex: 1, minWidth: 280 }}>
@@ -403,15 +572,70 @@ function ManuelTildeling({ season, onÆndret }: { season: string; onÆndret: () 
                     <span key={navn} className="type-badge" style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
                       {navn}
                       <button
+                        onClick={() => { setBytUd({ profileId: valgt.profileId, ligaNavn: navn }); setBytInd(''); setBesked(''); setFejl('') }}
+                        disabled={gemmer}
+                        title={`Byt ${valgt.displayName} ud af ${navn} og en anden ind`}
+                        style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink-2)', padding: 0, fontSize: 12 }}
+                      >
+                        ⇄
+                      </button>
+                      <button
                         onClick={() => fjern(valgt.profileId, navn)}
                         disabled={gemmer}
-                        title={`Fjern fra ${navn}`}
+                        title={`Fjern fra ${navn} uden erstatning`}
                         style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--accent)', padding: 0, fontSize: 12 }}
                       >
                         ✕
                       </button>
                     </span>
                   ))}
+                </div>
+              )}
+
+              {/* Swap: the freed seat is filled in the same action, so the league
+                  never sits one short and the mail goes to the person coming in. */}
+              {bytUd && bytUd.profileId === valgt.profileId && pulje && (
+                <div className="byt-boks">
+                  <p className="eyebrow" style={{ marginBottom: 10 }}>
+                    <strong>{valgt.displayName}</strong> ud af <strong>{bytUd.ligaNavn}</strong> — hvem skal ind?
+                  </p>
+                  <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'center' }}>
+                    <select
+                      className="gfc-input"
+                      style={{ flex: 1, minWidth: 260 }}
+                      value={bytInd}
+                      onChange={e => setBytInd(e.target.value)}
+                    >
+                      <option value="">Vælg hvem der skal ind…</option>
+                      {[
+                        { navn: 'Tilmeldt til tiden', rækker: pulje.tilTiden },
+                        { navn: 'Sen tilmelding', rækker: pulje.sene },
+                        { navn: 'Nåede ikke at tilmelde sig', rækker: pulje.naaedeIkke },
+                      ]
+                        .filter(g => g.rækker.length > 0)
+                        .map(g => (
+                          <optgroup key={g.navn} label={g.navn}>
+                            {g.rækker
+                              .filter(v => v.deltager.profileId !== valgt.profileId)
+                              .map(({ deltager }) => (
+                                <option key={deltager.profileId} value={deltager.profileId}>
+                                  {deltager.displayName} (@{deltager.sleeperUsername})
+                                </option>
+                              ))}
+                          </optgroup>
+                        ))}
+                    </select>
+                    <button className="btn" disabled={gemmer || !bytInd} onClick={byt}>
+                      {gemmer ? 'Bytter…' : 'Gennemfør byt'}
+                    </button>
+                    <button className="btn ghost" onClick={() => { setBytUd(null); setBytInd('') }}>
+                      Annullér
+                    </button>
+                  </div>
+                  <p className="eyebrow" style={{ marginTop: 8 }}>
+                    Listen er i den rækkefølge, pladser bør gives — tilmeldt til tiden øverst.
+                    Husk at gøre byttet i Sleeper også; det sker ikke automatisk.
+                  </p>
                 </div>
               )}
 
@@ -798,7 +1022,7 @@ export default function FordelPage() {
               value={nyPin.ligaNavn}
               onChange={e => setNyPin(p => ({ ...p, ligaNavn: e.target.value }))}
               onKeyDown={e => e.key === 'Enter' && (e.preventDefault(), tilføjPin())}
-              className="gfc-input mono"
+              className="gfc-input mono versal"
             />
           </div>
           <button
