@@ -42,7 +42,10 @@ app/admin/fordel/     Allocation preview/confirm + manual placement.
 app/api/admin/…       All admin endpoints; each checks session.user.isAdmin.
 app/[slug]/page.tsx   Renders any markdown page, file or DB.
 db/schema.sql         Full schema, with comments explaining each table.
-scripts/              apply-schema.mjs + one-off migrations.
+scripts/              apply-schema.mjs, migrations, and
+                      synk-liga-fra-sleeper.mjs — reconciles one Sleeper
+                      league's members into league_assignments (dry run by
+                      default, --commit to save, never mails).
 ```
 
 Knowledge graph in `graphify-out/` — run `graphify update .` after changing code.
@@ -58,7 +61,12 @@ Knowledge graph in `graphify-out/` — run `graphify update .` after changing co
 - **`/api/admin/fordel/bekraeft` rewrites the whole season**, so a full re-run
   overwrites manual placements from `/api/admin/fordel/manuel`.
 - **Sleeper's API is read-only.** Creating leagues and inviting players is
-  manual work in the Sleeper app — no amount of code fixes that.
+  manual work in the Sleeper app — no amount of code fixes that. When a league
+  is changed there, the site does not find out: add it to `ALL_LEAGUES` and run
+  `scripts/synk-liga-fra-sleeper.mjs` to make the database agree.
+- **The leaderboard reads `leaderboard_cache` first**, so a league added
+  mid-season stays invisible there until "Opdater nu" (or Tuesday's cron) runs.
+  Deleting the season's cache rows makes the page compute live in the meantime.
 - **`profiles.id` equals the Auth.js user id** for anyone who can log in, and is
   a freestanding uuid for admin-added players with no email. Join
   `authjs_user u ON u.id = p.id`.
