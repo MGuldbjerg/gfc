@@ -6,6 +6,11 @@ Brevo, data from the Sleeper API. Push to `main` deploys.
 
 Status doc: `Mikkels eget/GFC/projekt-status.md` in OneDrive.
 
+**Building the Nordic Fantasy Challenge (NFC), or anything multi-country? Read
+`PLAYBOOK-nordisk-udvidelse.md` first** — binding order, the traps and the
+symptom that reveals each one, and verification commands. Its §0 is the one that
+bites: `liga_navn` is a parsed key, so country must never go into it.
+
 ## The one rule that explains most of the codebase
 
 **Code is the default, the database overrides it, deleting the row restores the
